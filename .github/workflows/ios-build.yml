@@ -31,13 +31,12 @@ jobs:
       - name: Install Dependencies (boost, cmake, ninja)
         run: brew install boost cmake ninja
 
-      - name: Clone libtorrent (nested submodule, pinned v2.0.11)
+      - name: Clone libtorrent (pinned v2.0.11)
         run: |
-          if [ -z "$(ls -A ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent)" ]; then
-            git clone --recurse-submodules --branch v2.0.11 --depth 1 \
-              https://github.com/arvidn/libtorrent.git \
-              ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent
-          fi
+          rm -rf ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent
+          git clone --recurse-submodules --branch v2.0.11 --depth 1 \
+            https://github.com/arvidn/libtorrent.git \
+            ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent
 
       - name: Build LibTorrent Submodule
         run: |
