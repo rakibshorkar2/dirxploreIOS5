@@ -19,6 +19,39 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install Dependencies (boost, cmake, ninja)
+        run: brew install boost cmake ninja
+
+      - name: Clone libtorrent (nested submodule)
+        run: |
+          if [ -z "$(ls -A ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent)" ]; then
+            git clone --recurse-submodules https://github.com/arvidn/libtorrent.git \
+              ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent
+          fi
+
+      - name: Build LibTorrent Submodule
+        run: |
+          chmod +x ./ios/Torrent/LibTorrent-Swift/make.sh
+          ./ios/Torrent/LibTorrent-Swift/make.sh
+
+      - name: Pre-build LibTorrent Framework
+        run: |
+          xcodebuild -quiet \
+            -project ios/Torrent/LibTorrent-Swift/LibTorrent.xcodeproj \
+            -scheme LibTorrent \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ios/Torrent/LibTorrent-Swift/build \
+            CODE_SIGNING_ALLOWED=NO build
 
       - uses: subosito/flutter-action@v2
         with:
