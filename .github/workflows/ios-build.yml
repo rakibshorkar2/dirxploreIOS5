@@ -57,7 +57,7 @@ jobs:
         run: |
           xcodebuild -quiet \
             -project ios/Torrent/LibTorrent-Swift/libtorrent-build/libtorrent.xcodeproj \
-            -alltargets \
+            -target torrent-rasterbar \
             -configuration Debug \
             -sdk iphoneos \
             CODE_SIGNING_ALLOWED=NO build
