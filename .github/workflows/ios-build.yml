@@ -1,0 +1,67 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    name: Build iOS
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - run: flutter build ios --release --no-codesign
+
+      - name: Package .app into .ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -qr build/ios/iphoneos/Runner.ipa Payload/
+          rm -rf Payload
+
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: ios-build-output
+          path: |
+            build/ios/iphoneos/Runner.ipa
+            build/ios/iphoneos/Runner.app.dSYM.zip
+          retention-days: 7
+
+      - name: Extract app version
+        id: app_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.app_version.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping."
+          else
+            gh release create "$TAG" \
+              build/ios/iphoneos/Runner.ipa \
+              --title "DirXplore ${{ steps.app_version.outputs.version }}" \
+              --notes "Automated release from commit ${{ github.sha }}"
+          fi
