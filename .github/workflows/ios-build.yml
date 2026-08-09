@@ -36,6 +36,8 @@ jobs:
           curl -sL https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.gz -o /tmp/boost_1_85_0.tar.gz
           mkdir -p /tmp/boost
           tar -xzf /tmp/boost_1_85_0.tar.gz -C /tmp/boost --strip-components=1
+          sudo rm -rf /opt/homebrew/include/boost
+          sudo cp -R /tmp/boost/boost /opt/homebrew/include/
 
       - name: Clone libtorrent (pinned v1.2.20)
         run: |
@@ -53,6 +55,12 @@ jobs:
 
       - name: Pre-build LibTorrent Framework
         run: |
+          xcodebuild -quiet \
+            -project ios/Torrent/LibTorrent-Swift/libtorrent-build/libtorrent.xcodeproj \
+            -alltargets \
+            -configuration Debug \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO build
           xcodebuild -quiet \
             -project ios/Torrent/LibTorrent-Swift/LibTorrent.xcodeproj \
             -scheme LibTorrent \
