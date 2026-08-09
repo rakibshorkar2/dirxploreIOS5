@@ -151,7 +151,7 @@ final class TorrentEngine: NSObject {
             guard FileManager.default.fileExists(atPath: url.path) else {
                 return .failure(.invalidTorrentFile)
             }
-            let torrentFile = TorrentFile(unsafeWithFileAtURL: url)
+            let torrentFile = TorrentFile(unsafeWithFileAt: url)
             guard torrentFile.isValid else {
                 return .failure(.invalidTorrentFile)
             }
@@ -189,7 +189,7 @@ final class TorrentEngine: NSObject {
     func parseTorrentFile(at path: String) -> Result<[String: Any], TorrentEngineError> {
         queue.sync {
             let url = URL(fileURLWithPath: path)
-            let torrentFile = TorrentFile(unsafeWithFileAtURL: url)
+            let torrentFile = TorrentFile(unsafeWithFileAt: url)
             guard torrentFile.isValid else { return .failure(.invalidTorrentFile) }
             var files: [[String: Any]] = []
             for file in torrentFile.files {

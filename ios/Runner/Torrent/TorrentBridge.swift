@@ -10,7 +10,7 @@
 import Flutter
 import Foundation
 
-final class TorrentBridge: NSObject, FlutterStreamHandler {
+final class TorrentBridge: NSObject, FlutterPlugin, FlutterStreamHandler {
 
     static let shared = TorrentBridge()
 
@@ -25,7 +25,7 @@ final class TorrentBridge: NSObject, FlutterStreamHandler {
 
     // MARK: - Registration
 
-    static func register(with registrar: FlutterPluginRegistrar) {
+    @objc static func register(with registrar: FlutterPluginRegistrar) {
         let messenger = registrar.messenger()
 
         let channel = FlutterMethodChannel(name: "com.dirxplore/ios_torrent", binaryMessenger: messenger)
@@ -55,7 +55,7 @@ final class TorrentBridge: NSObject, FlutterStreamHandler {
             main { result(true) }
 
         case "isInitialized":
-            main { result(engine.isInitialized) }
+            main { [engine] in result(engine.isInitialized) }
 
         case "addMagnet":
             guard let magnet = args["magnet"] as? String else {
@@ -173,7 +173,7 @@ final class TorrentBridge: NSObject, FlutterStreamHandler {
 
         case "pickDownloadFolder":
             engine.pickDownloadFolder { [weak self] path in
-                self?.finish(path, outcome: .success(path ?? ""))
+                self?.finish(result, outcome: .success(path ?? ""))
             }
 
         default:
