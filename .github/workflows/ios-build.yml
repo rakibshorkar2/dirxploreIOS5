@@ -28,8 +28,14 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: Install Dependencies (boost, cmake, ninja)
-        run: brew install boost cmake ninja
+      - name: Install Dependencies (cmake, ninja)
+        run: brew install cmake ninja
+
+      - name: Install Boost 1.85 headers (libtorrent 1.2 needs boost < 1.87)
+        run: |
+          curl -sL https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.gz -o /tmp/boost_1_85_0.tar.gz
+          mkdir -p /tmp/boost
+          tar -xzf /tmp/boost_1_85_0.tar.gz -C /tmp/boost --strip-components=1
 
       - name: Clone libtorrent (pinned v1.2.20)
         run: |
@@ -39,6 +45,8 @@ jobs:
             ios/Torrent/LibTorrent-Swift/Thirdparty/libtorrent
 
       - name: Build LibTorrent Submodule
+        env:
+          BOOST_INCLUDEDIR: /tmp/boost
         run: |
           chmod +x ./ios/Torrent/LibTorrent-Swift/make.sh
           ./ios/Torrent/LibTorrent-Swift/make.sh
