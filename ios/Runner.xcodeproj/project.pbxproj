@@ -29,6 +29,7 @@
 		FF000026 /* TorrentTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00002A /* TorrentTask.swift */; };
 		FF000027 /* TorrentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00002B /* TorrentBridge.swift */; };
 		FF00002C /* LibTorrent.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FF000033 /* LibTorrent.framework */; };
+		FF000035 /* LibTorrent.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = FF000033 /* LibTorrent.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,7 +56,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				FF00002C /* LibTorrent.framework in Frameworks */,
+				FF000035 /* LibTorrent.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
