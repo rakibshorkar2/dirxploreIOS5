@@ -95,6 +95,7 @@ void main() async {
 
   runApp(
     LiquidGlassWidgets.wrap(
+      brightnessResolver: Theme.maybeBrightnessOf,
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: appState),
