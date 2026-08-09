@@ -388,7 +388,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "FRAMEWORK_PATH=\"$PROJECT_DIR/../Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos/LibTorrent.framework\"\nif [ ! -d \"$FRAMEWORK_PATH\" ]; then\n  echo \"Building LibTorrent.framework...\"\n  xcodebuild -quiet -project \"$PROJECT_DIR/../Torrent/LibTorrent-Swift/LibTorrent.xcodeproj\" -scheme LibTorrent -configuration Release -sdk iphoneos -derivedDataPath \"$PROJECT_DIR/../Torrent/LibTorrent-Swift/build\" CODE_SIGNING_ALLOWED=NO build\nfi\n";
+			shellScript = "FRAMEWORK_PATH=\"$PROJECT_DIR/Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos/LibTorrent.framework\"\nif [ ! -d \"$FRAMEWORK_PATH\" ]; then\n  echo \"Building LibTorrent.framework...\"\n  xcodebuild -quiet -project \"$PROJECT_DIR/Torrent/LibTorrent-Swift/LibTorrent.xcodeproj\" -scheme LibTorrent -configuration Release -sdk iphoneos -derivedDataPath \"$PROJECT_DIR/Torrent/LibTorrent-Swift/build\" CODE_SIGNING_ALLOWED=NO build\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -536,7 +536,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos",
+					"$(PROJECT_DIR)/Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos",
 				);
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -723,7 +723,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos",
+					"$(PROJECT_DIR)/Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos",
 				);
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -749,7 +749,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos",
+					"$(PROJECT_DIR)/Torrent/LibTorrent-Swift/build/Build/Products/Release-iphoneos",
 				);
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
