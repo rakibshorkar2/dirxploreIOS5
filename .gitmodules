@@ -1,0 +1,3 @@
+[submodule "ios/Runner/Torrent/LibTorrent/Thirdparty/libtorrent"]
+	path = ios/Runner/Torrent/LibTorrent/Thirdparty/libtorrent
+	url = https://github.com/arvidn/libtorrent.git
