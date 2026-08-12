@@ -1,0 +1,38 @@
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# libVLC build artifacts (21GB+ — rebuild with ./scripts/build-libvlc.sh)
+.build-libvlc/
+
+# Pre-built xcframework (1.2GB — rebuild with ./scripts/build-libvlc.sh)
+Vendor/
+
+# Release artifacts
+*.xcframework.zip
+coverage-report/
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
+
+# IDE
+*.swp
+*~
+
+# Device-validation harness stream config (operator-supplied, never committed)
+Showcase/iOS/ValidationHarness/streams.local.json
+
+# Local working documents (not part of the repo)
+CLAUDE.md
+PLAN.md
+PROGRESS.md

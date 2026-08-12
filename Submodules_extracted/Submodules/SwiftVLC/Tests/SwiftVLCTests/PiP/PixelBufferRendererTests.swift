@@ -1,0 +1,367 @@
+#if os(iOS) || os(macOS)
+@testable import SwiftVLC
+import AVFoundation
+import CoreMedia
+import CoreVideo
+import CustomDump
+import Synchronization
+import Testing
+
+extension Integration {
+  struct PixelBufferRendererTests {
+    @Test
+    func `Can be created with an AVSampleBufferDisplayLayer`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      let current = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(current === layer)
+    }
+
+    @Test
+    func `setDisplayLayer nil does not crash`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      renderer.setDisplayLayer(nil)
+      let current = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(current == nil)
+    }
+
+    @Test
+    func `setTimebase nil does not crash`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      renderer.setTimebase(nil)
+      let tb = renderer.state.withLock { $0.timebase }
+      #expect(tb == nil)
+    }
+
+    @Test
+    func `State is initially empty`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      let state = renderer.state.withLock { $0 }
+      #expect(state.pool == nil)
+      #expect(state.width == 0)
+      #expect(state.height == 0)
+    }
+
+    @Test
+    func `Sendable conformance`() {
+      let _: any Sendable.Type = PixelBufferRenderer.self
+    }
+  }
+}
+
+// MARK: - Extended Tests
+
+extension Integration {
+  struct PixelBufferRendererExtendedTests {
+    @Test
+    func `State pool is initially nil`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      let pool = renderer.state.withLock { $0.pool }
+      #expect(pool == nil)
+    }
+
+    @Test
+    func `State width and height are initially zero`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      let (w, h) = renderer.state.withLock { ($0.width, $0.height) }
+      #expect(w == 0)
+      #expect(h == 0)
+    }
+
+    @Test
+    func `setDisplayLayer stores weak reference`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      let current = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(current === layer)
+    }
+
+    @Test
+    func `setDisplayLayer nil clears reference`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      renderer.setDisplayLayer(nil)
+      let current = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(current == nil)
+    }
+
+    @Test
+    func `setDisplayLayer replaces with new layer`() {
+      let layer1 = AVSampleBufferDisplayLayer()
+      let layer2 = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer1)
+
+      let before = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(before === layer1)
+
+      renderer.setDisplayLayer(layer2)
+      let after = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(after === layer2)
+    }
+
+    @Test
+    func `setTimebase stores a real CMTimebase`() throws {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+
+      let clock = CMClockGetHostTimeClock()
+      var timebase: CMTimebase?
+      let status = CMTimebaseCreateWithSourceClock(
+        allocator: kCFAllocatorDefault,
+        sourceClock: clock,
+        timebaseOut: &timebase
+      )
+      #expect(status == noErr)
+      let tb = try #require(timebase)
+
+      renderer.setTimebase(tb)
+      let stored = renderer.state.withLock { $0.timebase }
+      #expect(stored != nil)
+    }
+
+    @Test
+    func `setTimebase nil clears timebase`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+
+      let clock = CMClockGetHostTimeClock()
+      var timebase: CMTimebase?
+      CMTimebaseCreateWithSourceClock(
+        allocator: kCFAllocatorDefault,
+        sourceClock: clock,
+        timebaseOut: &timebase
+      )
+      renderer.setTimebase(timebase)
+      let before = renderer.state.withLock { $0.timebase }
+      #expect(before != nil)
+
+      renderer.setTimebase(nil)
+      let after = renderer.state.withLock { $0.timebase }
+      #expect(after == nil)
+    }
+
+    @Test
+    func `State is Sendable`() {
+      let _: any Sendable.Type = PixelBufferRenderer.State.self
+    }
+
+    @Test
+    func `Multiple setDisplayLayer calls do not crash`() {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      for _ in 0..<20 {
+        renderer.setDisplayLayer(AVSampleBufferDisplayLayer())
+      }
+      renderer.setDisplayLayer(nil)
+      renderer.setDisplayLayer(AVSampleBufferDisplayLayer())
+      renderer.setDisplayLayer(nil)
+      let current = renderer.state.withLock { $0.displayLayer.layer }
+      #expect(current == nil)
+    }
+
+    @Test
+    func `Multiple setTimebase calls do not crash`() {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      let clock = CMClockGetHostTimeClock()
+
+      for _ in 0..<20 {
+        var tb: CMTimebase?
+        CMTimebaseCreateWithSourceClock(
+          allocator: kCFAllocatorDefault,
+          sourceClock: clock,
+          timebaseOut: &tb
+        )
+        renderer.setTimebase(tb)
+      }
+      renderer.setTimebase(nil)
+      renderer.setTimebase(nil)
+      let current = renderer.state.withLock { $0.timebase }
+      #expect(current == nil)
+    }
+
+    @Test
+    func `outputPixelBuffer scales to active render size`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      renderer.setRenderSize(CMVideoDimensions(width: 320, height: 180))
+
+      let sourceBuffer = try makeBGRAImageBuffer(width: 1280, height: 720)
+      let output = try #require(renderer.outputPixelBuffer(from: sourceBuffer)?.buffer)
+
+      #expect(CVPixelBufferGetWidth(output) == 320)
+      #expect(CVPixelBufferGetHeight(output) == 180)
+    }
+
+    @Test
+    func `clearing render size returns original pixel buffer`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+      renderer.setRenderSize(nil)
+
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+      let output = try #require(renderer.outputPixelBuffer(from: sourceBuffer)?.buffer)
+      #expect(output === sourceBuffer)
+    }
+
+    @Test
+    func `render size changes invalidate pending frames`() throws {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+      let firstFrame = try #require(renderer.outputPixelBuffer(from: sourceBuffer))
+      #expect(renderer.canEnqueueFrame(generation: firstFrame.generation, on: layer))
+
+      renderer.setRenderSize(CMVideoDimensions(width: 10, height: 10))
+
+      #expect(!renderer.canEnqueueFrame(generation: firstFrame.generation, on: layer))
+      let secondFrame = try #require(renderer.outputPixelBuffer(from: sourceBuffer))
+      #expect(renderer.canEnqueueFrame(generation: secondFrame.generation, on: layer))
+    }
+
+    @Test
+    func `setting the same render size keeps the current generation`() {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+      let firstGeneration = renderer.state.withLock { $0.renderGeneration }
+
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+      let secondGeneration = renderer.state.withLock { $0.renderGeneration }
+
+      #expect(secondGeneration == firstGeneration)
+    }
+
+    @Test
+    func `matching render size returns original pixel buffer`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      renderer.setRenderSize(CMVideoDimensions(width: 16, height: 16))
+
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+      let output = try #require(renderer.outputPixelBuffer(from: sourceBuffer)?.buffer)
+
+      #expect(output === sourceBuffer)
+    }
+
+    @Test
+    func `Scaling resources stay unallocated for passthrough frames`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+
+      #expect(renderer.state.withLock { $0.scalingResources } == nil)
+
+      let unsetOutput = try #require(renderer.outputPixelBuffer(from: sourceBuffer)?.buffer)
+      #expect(unsetOutput === sourceBuffer)
+      #expect(renderer.state.withLock { $0.scalingResources } == nil)
+
+      renderer.setRenderSize(CMVideoDimensions(width: 16, height: 16))
+      let matchingOutput = try #require(renderer.outputPixelBuffer(from: sourceBuffer)?.buffer)
+      #expect(matchingOutput === sourceBuffer)
+      #expect(renderer.state.withLock { $0.scalingResources } == nil)
+    }
+
+    @Test
+    func `Scaling resources are created once and reused across resizes`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+      _ = try #require(renderer.outputPixelBuffer(from: sourceBuffer))
+      let firstResources = try #require(renderer.state.withLock { $0.scalingResources })
+
+      renderer.setRenderSize(CMVideoDimensions(width: 4, height: 4))
+      _ = try #require(renderer.outputPixelBuffer(from: sourceBuffer))
+      let secondResources = try #require(renderer.state.withLock { $0.scalingResources })
+
+      #expect(firstResources === secondResources)
+    }
+
+    @Test
+    func `repeated scaling reuses the render pool for unchanged dimensions`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+      _ = try #require(renderer.outputPixelBuffer(from: sourceBuffer))
+      let firstPool = renderer.state.withLock { $0.renderPool }
+
+      _ = try #require(renderer.outputPixelBuffer(from: sourceBuffer))
+      let secondPool = renderer.state.withLock { $0.renderPool }
+
+      #expect(firstPool != nil)
+      #expect(firstPool === secondPool)
+    }
+
+    @Test
+    func `Render pool threshold fails closed and recovers after a buffer returns`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      renderer.setRenderSize(CMVideoDimensions(width: 8, height: 8))
+      let sourceBuffer = try makeBGRAImageBuffer(width: 16, height: 16)
+      let threshold = pixelBufferRendererPoolAllocationThreshold(width: 8, height: 8)
+      expectNoDifference(threshold, 12)
+
+      var heldBuffers: [CVPixelBuffer] = []
+      for _ in 0..<threshold {
+        try heldBuffers.append(
+          #require(renderer.outputPixelBuffer(from: sourceBuffer)?.buffer)
+        )
+      }
+
+      #expect(renderer.outputPixelBuffer(from: sourceBuffer) == nil)
+
+      heldBuffers.removeLast()
+      #expect(renderer.outputPixelBuffer(from: sourceBuffer) != nil)
+    }
+
+    @Test
+    func `unallocatable render size returns nil instead of enqueuing a frame`() throws {
+      let renderer = PixelBufferRenderer(displayLayer: AVSampleBufferDisplayLayer())
+      renderer.setRenderSize(CMVideoDimensions(width: 1_000_000, height: 1_000_000))
+
+      let sourceBuffer = try makeBGRAImageBuffer(width: 2, height: 2)
+
+      #expect(renderer.outputPixelBuffer(from: sourceBuffer) == nil)
+    }
+
+    @Test
+    func `Initial state has all fields at default values`() {
+      let layer = AVSampleBufferDisplayLayer()
+      let renderer = PixelBufferRenderer(displayLayer: layer)
+      let (pool, w, h, tb, stored) = renderer.state.withLock {
+        ($0.pool, $0.width, $0.height, $0.timebase, $0.displayLayer.layer)
+      }
+      #expect(pool == nil)
+      #expect(w == 0)
+      #expect(h == 0)
+      #expect(tb == nil)
+      #expect(stored === layer)
+    }
+  }
+}
+
+private func makeBGRAImageBuffer(width: Int, height: Int) throws -> CVPixelBuffer {
+  var buffer: CVPixelBuffer?
+  let attrs: [String: Any] = [
+    kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+    kCVPixelBufferWidthKey as String: width,
+    kCVPixelBufferHeightKey as String: height,
+    kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any]
+  ]
+  let status = CVPixelBufferCreate(
+    kCFAllocatorDefault,
+    width,
+    height,
+    kCVPixelFormatType_32BGRA,
+    attrs as CFDictionary,
+    &buffer
+  )
+  #expect(status == kCVReturnSuccess)
+  return try #require(buffer)
+}
+#endif

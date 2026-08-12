@@ -1,0 +1,125 @@
+# Audio features
+
+Tune volume, output routing, channel mixing, and equalization.
+
+## Volume, mute, delay
+
+```swift
+try player.setAudioVolume(0.8)             // 0.0 silent, 1.0 is 100%, up to 2.0
+player.isMuted = false
+try player.setAudioDelay(.milliseconds(30)) // positive = audio plays later
+```
+
+Volume is normalized, so `0.0 ... 1.0` covers the useful range; values
+above `1.0` software-amplify beyond normal (capped at 2.0 / 200%) and
+can distort on quietly-mastered content.
+
+## Output modules and devices
+
+List available output modules (CoreAudio, auhal, etc.) for the running
+instance:
+
+```swift
+for module in VLCInstance.shared.audioOutputs() {
+    print(module.name, module.outputDescription)
+}
+try player.setAudioOutput("auhal")   // macOS example
+```
+
+Then pick a device within that module:
+
+```swift
+for device in player.audioDevices() {
+    print(device.deviceId, device.deviceDescription)
+}
+try player.setAudioDevice("external-speakers-uid")
+```
+
+Observe ``PlayerEvent/audioDeviceChanged(_:)`` if you need to react to
+system-initiated device changes (e.g. headphones connecting).
+
+## Equalizer
+
+``Equalizer`` is a 10-band graphic EQ with preamp and preset support.
+Build one, tune it, and attach it to a player:
+
+```swift
+let eq = Equalizer()
+eq.preampGain = 4.0                          // dB; clamped to -20...+20
+try eq.setAmplification(5.0, forBand: 0)     // bass lift
+player.equalizer = eq
+```
+
+Typed gain accessors wrap raw `Float` values in ``EqualizerGain``.
+Each value is clamped to libVLC's `-20.0 ... +20.0` dB range:
+
+```swift
+eq.preampGain = .flat
+try eq.setBandGains([+3.0, +2.0, .flat, -1.0, -2.0, -2.0, -1.0, .flat, +1.0, +2.0])
+try eq.setGain(+6.0, forBand: 3)
+```
+
+Use a built-in preset by index:
+
+```swift
+if let rock = Equalizer(preset: Equalizer.presetNames.firstIndex(of: "Rock") ?? 0) {
+    player.equalizer = rock
+}
+```
+
+Pass `nil` to disable: `player.equalizer = nil`.
+
+## Channel layout
+
+Two independent properties shape the output signal:
+
+- ``Player/stereoMode`` picks a stereo transformation (standard,
+  reversed, mono, or Dolby Surround).
+- ``Player/mixMode`` selects the channel count of the final mix,
+  including stereo, 4.0, 5.1, 7.1, and binaural rendering for
+  headphones.
+
+```swift
+player.stereoMode = .mono        // collapse to mono
+player.mixMode = .binaural       // spatialize for headphones
+```
+
+## Role hints
+
+Pass libVLC an audio-role hint. The effect depends on the platform and
+active output module:
+
+```swift
+player.role = .music         // long-form listening
+player.role = .communication // voice/video calls
+```
+
+See ``PlayerRole`` for the full set.
+
+## Topics
+
+### Volume
+- ``Player/volume``
+- ``Player/isMuted``
+- ``Player/audioDelay``
+
+### Output routing
+- ``Player/setAudioOutput(_:)``
+- ``Player/audioDevices()``
+- ``Player/setAudioDevice(_:)``
+- ``Player/currentAudioDevice``
+- ``AudioOutput``
+- ``AudioDevice``
+
+### Equalization
+- ``Equalizer``
+- ``Player/equalizer``
+- ``EqualizerGain``
+
+### Channel layout and role
+- ``Player/stereoMode``
+- ``Player/mixMode``
+- ``Player/role``
+- ``StereoMode``
+- ``MixMode``
+- ``PlayerRole``

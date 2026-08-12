@@ -1,0 +1,102 @@
+# Concurrency model
+
+Which types are isolated, which are `Sendable`, and how `sending`
+transfers flow between them.
+
+## Isolation at a glance
+
+| Type | Isolation |
+|---|---|
+| ``Player``, ``MediaListPlayer``, ``Equalizer``, ``PiPController`` | `@MainActor` |
+| ``Marquee``, ``Logo``, ``VideoAdjustments`` | `@MainActor`, also `~Copyable`/`~Escapable` |
+| ``Media``, ``MediaList``, ``VLCInstance``, ``MediaDiscoverer``, ``RendererDiscoverer`` | `Sendable` (any actor) |
+| ``Track``, ``Metadata``, ``PlayerState``, ``PlayerEvent``, ``VLCError``, … | `Sendable` value types |
+
+The main-actor types own stateful C resources: players, equalizers,
+the PiP pipeline. The `Sendable` ones are safe to create and pass
+around freely. A typical pattern is to build a ``Media`` on a
+background task, transfer it to the main actor, and play it from
+there.
+
+## The sending transfer
+
+``Player/load(_:)`` and ``Player/play(_:)`` take `sending Media`:
+
+```swift
+public func load(_ media: sending Media)
+```
+
+`sending` asks the compiler to transfer ownership of `media` across
+the isolation boundary. After the call, the caller cannot keep using
+the transferred reference, which prevents a background task from racing
+the main-actor player through the same `Media` object.
+
+```swift
+Task.detached {
+    let media = try Media(url: url)       // built off-actor
+    await MainActor.run {
+        try? player.play(media)           // ownership transfers in
+    }
+}
+```
+
+## Event streams
+
+Events, logs, dialogs, and discoverers all surface through
+`AsyncStream`. The streams are multiplexed: calling ``Player/events``
+twice returns two independent subscriptions. Each subscription is
+offered events broadcast after its creation, subject to its own filter
+and buffering policy.
+
+```swift
+Task { for await e in player.events { handleA(e) } }
+Task { for await e in player.events { handleB(e) } }
+```
+
+``Player/events`` defaults to `.newest(64)`. Logs and discovery streams
+also use bounded newest-wins buffers. A slow consumer can therefore drop
+its own oldest buffered events rather than block the callback thread or
+other subscribers. Consumers that must not miss lifecycle transitions
+can use ``Player/stateTransitions`` or an explicitly filtered,
+`.unbounded` ``Player/events(policy:filter:)`` subscription.
+
+## Cancellation and stream termination
+
+Media parsing and thumbnail generation provide documented cooperative
+cancellation behavior:
+
+- ``Media/parse(timeout:instance:)``: canceling the enclosing task
+  stops the parse.
+- ``Media/thumbnail(at:width:height:crop:timeout:instance:)``:
+  canceling before libVLC accepts the request returns immediately. Once
+  accepted, SwiftVLC waits for the terminal thumbnail event so callback
+  and request teardown are complete before the task returns.
+
+Other asynchronous operations document their own completion contract.
+For example, ``Player/stopAndWait()`` and ``Player/shutdown()`` wait for
+native lifecycle teardown and do not advertise the parsing cancellation
+contract.
+
+- Streams finish when their owning type (`Player`, `VLCInstance`, or
+  a discoverer) is released.
+
+## Deinit off the main actor
+
+Several main-actor types release their C resources on a background
+queue during `deinit`. The underlying `libvlc_*_release` calls can
+block for several milliseconds, and for seconds under load, so doing
+the work inline would stall SwiftUI transitions. Teardown runs
+asynchronously by design: the event manager is detached first, then
+stop and release execute on a utility queue.
+
+No waiting is required on the caller's side. From the outside, `deinit`
+simply returns.
+
+## Topics
+
+- ``Player``
+- ``Media``
+- ``VLCInstance``
+- ``PlayerEvent``
+- ``DialogHandler``
+- ``LogEntry``

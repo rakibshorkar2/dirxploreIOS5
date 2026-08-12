@@ -1,0 +1,130 @@
+import SwiftUI
+import SwiftVLC
+
+struct MacMusicPlayerApp: View {
+  @State private var player = Player(instance: Self.audioOnlyInstance)
+  @State private var selectedSongID: Song.ID? = Song.demo.id
+  @State private var metadata: Metadata?
+
+  private var songs: [Song] {
+    if LaunchArguments.isUITestMode, LaunchArguments.musicFixtureURLValues.count >= 3 {
+      return zip(Self.defaultSongs, LaunchArguments.musicFixtureURLValues).map { song, url in
+        Song(id: song.id, title: song.title, artist: song.artist, url: url)
+      }
+    }
+    return Self.defaultSongs
+  }
+
+  private static var defaultSongs: [Song] {
+    Song.all
+  }
+
+  private static let audioOnlyInstance = try! VLCInstance(arguments: VLCInstance.defaultArguments + ["--no-video"])
+
+  var body: some View {
+    MacShowcaseContent(
+      title: "Music Player",
+      summary: "A native macOS now-playing surface focused on audio controls, metadata, and library selection.",
+      usage: "Choose a library item, use playback and volume controls, and watch the now-playing metadata update from the selected media."
+    ) {
+      HStack(alignment: .top, spacing: 20) {
+        VStack(spacing: 16) {
+          artwork
+          MacPlaybackControls(
+            player: player,
+            playPauseAccessibilityID: AccessibilityID.MusicPlayer.playPauseButton
+          )
+        }
+        .frame(minWidth: 360)
+
+        MacSection(title: "Library") {
+          List(songs, selection: $selectedSongID) { song in
+            VStack(alignment: .leading, spacing: 2) {
+              Text(song.title)
+              Text(song.artist)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            .accessibilityIdentifier(AccessibilityID.MusicPlayer.songButton(song.title))
+            .tag(song.id)
+          }
+          .frame(minHeight: 260)
+        }
+      }
+    } sidebar: {
+      MacSection(title: "Now Playing") {
+        MacMetricGrid {
+          MacMetricRow(title: "Title", value: metadata?.title ?? currentSong?.title ?? "--")
+          MacMetricRow(title: "Artist", value: metadata?.artist ?? currentSong?.artist ?? "--")
+          MacMetricRow(
+            title: "State",
+            value: player.state.description,
+            valueIdentifier: AccessibilityID.MusicPlayer.stateLabel
+          )
+          MacMetricRow(
+            title: "Time",
+            value: durationLabel(player.currentTime),
+            valueIdentifier: AccessibilityID.MusicPlayer.currentTime
+          )
+        }
+      }
+      MacLibrarySurface(symbols: ["Media(url:)", "media.parse()", "Player.volume", "Player.isMuted"])
+    }
+    .task(id: selectedSongID) { await selectedSongChanged() }
+    .onDisappear { player.stop() }
+  }
+
+  private var currentSong: Song? {
+    songs.first { $0.id == selectedSongID }
+  }
+
+  private var artwork: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 8)
+        .fill(.quaternary)
+      Image(systemName: "waveform.circle.fill")
+        .font(.system(size: 96))
+        .foregroundStyle(.orange, .secondary)
+    }
+    .aspectRatio(1, contentMode: .fit)
+    .overlay {
+      RoundedRectangle(cornerRadius: 8)
+        .stroke(.separator)
+    }
+  }
+
+  private func selectedSongChanged() async {
+    guard let song = currentSong else { return }
+    metadata = nil
+    player.role = .music
+    try? player.play(url: song.url)
+    if let media = try? Media(url: song.url) {
+      let parsedMetadata = try? await media.parse()
+      guard !Task.isCancelled, selectedSongID == song.id else { return }
+      metadata = parsedMetadata
+    }
+  }
+}
+
+private struct Song: Identifiable, Hashable {
+  let id: String
+  let title: String
+  let artist: String
+  let url: URL
+
+  static var demo: Song {
+    Song(id: "demo", title: "Demo reel", artist: "Bundled sample", url: MacTestMedia.demo)
+  }
+
+  static var bunny: Song {
+    Song(id: "bunny", title: "Big Buck Bunny", artist: "Blender Foundation", url: MacTestMedia.bigBuckBunny)
+  }
+
+  static var hls: Song {
+    Song(id: "hls", title: "HLS Stream", artist: "Mux test stream", url: MacTestMedia.hls)
+  }
+
+  static var all: [Song] {
+    [demo, bunny, hls]
+  }
+}

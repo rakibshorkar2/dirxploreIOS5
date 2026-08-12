@@ -1,0 +1,37 @@
+# Codecov configuration for SwiftVLC.
+#
+# Coverage comes from a single `swift test --enable-code-coverage` run on a
+# headless macOS CI host (see .github/workflows/test.yml → the `test` job).
+# That environment cannot execute every live C or system-framework boundary,
+# but the state machines around those boundaries are covered through controlled
+# dependencies. Patch coverage therefore remains enforceable without ignoring
+# production files.
+
+coverage:
+  status:
+    # Overall project coverage stays an enforced, blocking check: a
+    # regression in code that CI *can* execute should still fail CI.
+    project:
+      default:
+        target: auto
+        # Tolerate sub-percent noise from non-deterministic line attribution
+        # between runs; a real drop trips the check.
+        threshold: 1%
+
+    # New executable lines must remain well tested. The small gap below 100%
+    # accommodates thin live C and system-framework calls that a headless test
+    # process cannot invoke safely; no production paths or files are ignored.
+    patch:
+      default:
+        target: 85%
+        threshold: 0%
+        informational: false
+
+# Belt-and-suspenders: the LCOV export (scripts/export-lcov.sh) already strips
+# Tests/ and .build/, and the Showcase apps build from a separate Xcode project
+# that never feeds coverage. Listing them here keeps Codecov's own bookkeeping
+# aligned with what actually gets uploaded.
+ignore:
+  - "Tests"
+  - "Showcase"
+  - ".build"

@@ -1,0 +1,180 @@
+diff --git a/modules/video_output/apple/VLCPictureInPictureController.m b/modules/video_output/apple/VLCPictureInPictureController.m
+index 3926844c81..9d833fb52f 100644
+--- a/modules/video_output/apple/VLCPictureInPictureController.m
++++ b/modules/video_output/apple/VLCPictureInPictureController.m
+@@ -40,6 +40,16 @@
+ 
+ #include "vlc_pip_controller.h"
+ 
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++static CMTime DisplayLayerTime(AVSampleBufferDisplayLayer *displayLayer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        return CMTimebaseGetTime(displayLayer.sampleBufferRenderer.timebase);
++    return CMTimebaseGetTime(displayLayer.timebase);
++}
++#pragma clang diagnostic pop
++
+ API_AVAILABLE(ios(15.0), tvos(15.0), macosx(12.0))
+ @interface VLCPictureInPictureController: NSObject
+     <AVPictureInPictureSampleBufferPlaybackDelegate, 
+@@ -239,8 +249,7 @@ - (CMTimeRange)pictureInPictureControllerTimeRangeForPlayback:(AVPictureInPictur
+     else if (time >= length)
+         time = length - 1;
+ 
+-    CMTime current =
+-        CMTimebaseGetTime(_displayLayer.sampleBufferRenderer.timebase);
++    CMTime current = DisplayLayerTime(_displayLayer);
+     if (!CMTIME_IS_NUMERIC(current))
+         current = CMClockGetTime(CMClockGetHostTimeClock());
+     CMTime start = CMTimeSubtract(current, CMTimeMake(time, 1000));
+diff --git a/modules/video_output/apple/VLCSampleBufferDisplay.m b/modules/video_output/apple/VLCSampleBufferDisplay.m
+index ebe5a3be95..f84dbbea4f 100644
+--- a/modules/video_output/apple/VLCSampleBufferDisplay.m
++++ b/modules/video_output/apple/VLCSampleBufferDisplay.m
+@@ -69,6 +69,59 @@ typedef NS_ENUM(NSUInteger, VLCSampleBufferPixelFlip) {
+     kVLCSampleBufferPixelFlip_V = 1 << 1,
+ };
+ 
++/* AVSampleBufferVideoRenderer was introduced in iOS/tvOS 17. Keep the
++ * AVSampleBufferDisplayLayer compatibility surface for iOS 16 while using the
++ * replacement renderer on newer systems. The legacy methods remain available
++ * through iOS 17 and are only deprecated as of iOS 18. */
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++static BOOL DisplayLayerRequiresFlush(AVSampleBufferDisplayLayer *displayLayer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        return displayLayer.sampleBufferRenderer.requiresFlushToResumeDecoding;
++    return displayLayer.requiresFlushToResumeDecoding;
++}
++
++static AVQueuedSampleBufferRenderingStatus
++DisplayLayerStatus(AVSampleBufferDisplayLayer *displayLayer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        return displayLayer.sampleBufferRenderer.status;
++    return displayLayer.status;
++}
++
++static NSError *DisplayLayerError(AVSampleBufferDisplayLayer *displayLayer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        return displayLayer.sampleBufferRenderer.error;
++    return displayLayer.error;
++}
++
++static void DisplayLayerFlush(AVSampleBufferDisplayLayer *displayLayer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        [displayLayer.sampleBufferRenderer flush];
++    else
++        [displayLayer flush];
++}
++
++static void DisplayLayerEnqueue(AVSampleBufferDisplayLayer *displayLayer,
++                                CMSampleBufferRef sampleBuffer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        [displayLayer.sampleBufferRenderer enqueueSampleBuffer:sampleBuffer];
++    else
++        [displayLayer enqueueSampleBuffer:sampleBuffer];
++}
++
++static BOOL DisplayLayerIsReady(AVSampleBufferDisplayLayer *displayLayer)
++{
++    if (@available(macOS 14.0, iOS 17.0, tvOS 17.0, visionOS 1.0, *))
++        return displayLayer.sampleBufferRenderer.isReadyForMoreMediaData;
++    return displayLayer.isReadyForMoreMediaData;
++}
++#pragma clang diagnostic pop
++
+ #pragma mark - VLCRotatedPixelBufferProvider
+ 
+ @interface VLCRotatedPixelBufferProvider : NSObject
+@@ -875,16 +928,15 @@ - (void)prepareDisplay {
+                 sys.displayLayer = displayLayer;
+                 if (sys->pendingSampleBuffer != NULL)
+                 {
+-                    AVSampleBufferVideoRenderer *renderer =
+-                        displayLayer.sampleBufferRenderer;
+-                    if (renderer.requiresFlushToResumeDecoding ||
+-                        renderer.status ==
++                    if (DisplayLayerRequiresFlush(displayLayer) ||
++                        DisplayLayerStatus(displayLayer) ==
+                             AVQueuedSampleBufferRenderingStatusFailed)
+-                        [renderer flush];
++                        DisplayLayerFlush(displayLayer);
+                     /* AVQueuedSampleBufferRendering explicitly permits enqueue
+                      * while not ready. This is exactly one bounded startup
+                      * sample, never an unbounded producer queue. */
+-                    [renderer enqueueSampleBuffer:sys->pendingSampleBuffer];
++                    DisplayLayerEnqueue(displayLayer,
++                                        sys->pendingSampleBuffer);
+                     CFRelease(sys->pendingSampleBuffer);
+                     sys->pendingSampleBuffer = NULL;
+                 }
+@@ -990,24 +1042,24 @@ static void RenderPicture(vout_display_t *vd, picture_t *pic, vlc_tick_t date) {
+             layerWasMissingAtStart = YES;
+         else
+         {
+-            AVSampleBufferVideoRenderer *renderer =
+-                displayLayer.sampleBufferRenderer;
+-            if (renderer.requiresFlushToResumeDecoding ||
+-                renderer.status == AVQueuedSampleBufferRenderingStatusFailed)
++            if (DisplayLayerRequiresFlush(displayLayer) ||
++                DisplayLayerStatus(displayLayer) ==
++                    AVQueuedSampleBufferRenderingStatusFailed)
+             {
+-                NSError *error = renderer.error;
++                NSError *error = DisplayLayerError(displayLayer);
+                 msg_Warn(vd, "Flushing failed sample-buffer renderer%s%s",
+                          error ? ": " : "",
+                          error ? error.description.UTF8String : "");
+-                [renderer flush];
++                DisplayLayerFlush(displayLayer);
+             }
+             if (sys->pendingSampleBuffer != NULL)
+             {
+-                [renderer enqueueSampleBuffer:sys->pendingSampleBuffer];
++                DisplayLayerEnqueue(displayLayer,
++                                    sys->pendingSampleBuffer);
+                 CFRelease(sys->pendingSampleBuffer);
+                 sys->pendingSampleBuffer = NULL;
+             }
+-            if (!renderer.isReadyForMoreMediaData)
++            if (!DisplayLayerIsReady(displayLayer))
+                 return;
+         }
+     }
+@@ -1200,22 +1252,21 @@ static void RenderPicture(vout_display_t *vd, picture_t *pic, vlc_tick_t date) {
+         }
+         else
+         {
+-            AVSampleBufferVideoRenderer *renderer =
+-                displayLayer.sampleBufferRenderer;
+-            if (renderer.requiresFlushToResumeDecoding ||
+-                renderer.status == AVQueuedSampleBufferRenderingStatusFailed)
++            if (DisplayLayerRequiresFlush(displayLayer) ||
++                DisplayLayerStatus(displayLayer) ==
++                    AVQueuedSampleBufferRenderingStatusFailed)
+             {
+-                NSError *error = renderer.error;
++                NSError *error = DisplayLayerError(displayLayer);
+                 msg_Warn(vd, "Flushing failed sample-buffer renderer%s%s",
+                          error ? ": " : "",
+                          error ? error.description.UTF8String : "");
+-                [renderer flush];
++                DisplayLayerFlush(displayLayer);
+             }
+             /* A frame built while the layer was absent is the one bounded
+              * startup sample. AVFoundation documents this enqueue as safe
+              * even if readiness changed before installation completed. */
+-            if (renderer.isReadyForMoreMediaData || layerWasMissingAtStart)
+-                [renderer enqueueSampleBuffer:sampleBuffer];
++            if (DisplayLayerIsReady(displayLayer) || layerWasMissingAtStart)
++                DisplayLayerEnqueue(displayLayer, sampleBuffer);
+         }
+     }
+ 

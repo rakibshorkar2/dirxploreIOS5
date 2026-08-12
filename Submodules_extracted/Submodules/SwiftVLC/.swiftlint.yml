@@ -1,0 +1,40 @@
+disabled_rules:
+- line_length
+- identifier_name
+- large_tuple
+- force_try
+- nesting
+- force_cast
+- trailing_comma
+- function_body_length
+- unused_closure_parameter
+- type_name
+- cyclomatic_complexity
+- multiple_closures_with_trailing_closure
+# SwiftVLC wraps libVLC's C API directly. Its types mirror C symbols like
+# `libvlc_media_slaves_add` and `libvlc_media_slave_type_t`, so the term
+# appears throughout this module purely as a C-API artifact — not as a
+# value judgment. Renaming would break the one-to-one mapping with the
+# upstream libVLC headers.
+- inclusive_language
+# libVLC C callbacks take 6–8 parameters by contract; we can't reshape
+# them without a shim layer that would just hide the real signatures.
+- function_parameter_count
+
+type_body_length:
+  warning: 800
+  error: 1500
+
+file_length:
+  warning: 1000
+  error: 2000
+
+excluded:
+- .build
+- Modules
+# libVLC build artefacts and pre-built xcframework — multi-GB of upstream
+# C source plus binary frameworks. Swift files don't live here.
+- scripts/.build-libvlc
+- Vendor
+# .git working tree shouldn't ever be scanned by lint, but be explicit.
+- .git
