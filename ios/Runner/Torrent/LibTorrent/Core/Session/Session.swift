@@ -44,7 +44,7 @@ extension StorageModel: Codable {
         self.pathBookmark = pathBookmark
     }
 
-    public required convenience init(from decoder: any Decoder) throws {
+    public convenience init(from decoder: any Decoder) throws {
         self.init()
 
         let container = try decoder.container(keyedBy: CodingKeys.self)

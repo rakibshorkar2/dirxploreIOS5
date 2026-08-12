@@ -44,10 +44,10 @@ import Flutter
         try? fileManager.createDirectory(at: torrentsPath, withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: fastResumePath, withIntermediateDirectories: true)
 
-        let settings = SessionSettings()
+        let settings = Session.Settings()
 
         self.session = Session(
-            initWith: downloadPath,
+            downloadPath,
             torrentsPath: torrentsPath,
             fastResumePath: fastResumePath,
             settings: settings,
@@ -55,7 +55,7 @@ import Flutter
         )
 
         if let session = self.session {
-            session.add(self)
+            session.addDelegate(self)
             session.restoreSession()
             self.isInitialized = true
             completion(true)
@@ -67,7 +67,7 @@ import Flutter
     func shutdown() {
         guard let session = session else { return }
         session.pause()
-        session.remove(self)
+        session.removeDelegate(self)
         self.session = nil
         self.isInitialized = false
     }
@@ -78,7 +78,7 @@ import Flutter
             return
         }
 
-        let magnet = MagnetURI(initUnsafeWithMagnetURI: url)
+        let magnet = MagnetURI(unsafeWithMagnetURI: url)
         if let handle = session.addTorrent(magnet) {
             handle.updateSnapshot()
             let dict = torrentToDictionary(handle)
@@ -95,7 +95,7 @@ import Flutter
         }
 
         let fileURL = URL(fileURLWithPath: filePath)
-        let torrentFile = TorrentFile(initUnsafeWithFileAt: fileURL)
+        let torrentFile = TorrentFile(unsafeWithFileAtURL: fileURL)
         if let handle = session.addTorrent(torrentFile) {
             handle.updateSnapshot()
             let dict = torrentToDictionary(handle)
@@ -171,7 +171,7 @@ import Flutter
         let targetHash = infoHash.lowercased()
         for handle in session.torrents {
             if torrentHashesToString(handle.infoHashes).lowercased() == targetHash {
-                let filePriority = FilePriority(rawValue: UInt(priority))
+                let filePriority = FileEntry.Priority(rawValue: UInt8(clamping: priority)) ?? .defaultPriority
                 handle.setFilePriority(filePriority, at: fileIndex)
                 completion(true)
                 return
@@ -287,16 +287,13 @@ import Flutter
     }
 
     private func torrentHashesToString(_ hashes: TorrentHashes) -> String {
-        if hashes.hasV1, let v1 = hashes.v1 {
-            return v1.map { String(format: "%02hhx", $0) }.joined()
+        if hashes.hasV1 {
+            return hashes.v1.map { String(format: "%02hhx", $0) }.joined()
         }
-        if hashes.hasV2, let v2 = hashes.v2 {
-            return v2.prefix(20).map { String(format: "%02hhx", $0) }.joined()
+        if hashes.hasV2 {
+            return hashes.v2.prefix(20).map { String(format: "%02hhx", $0) }.joined()
         }
-        if let best = hashes.best {
-            return best.prefix(20).map { String(format: "%02hhx", $0) }.joined()
-        }
-        return ""
+        return hashes.best.prefix(20).map { String(format: "%02hhx", $0) }.joined()
     }
 
     private func torrentToDictionary(_ handle: TorrentHandle) -> [String: Any] {
@@ -338,7 +335,7 @@ import Flutter
         var trackersList: [[String: Any]] = []
         for tracker in snap.trackers {
             trackersList.append([
-                "url": tracker.url,
+                "url": tracker.trackerUrl,
                 "status": "working",
                 "peers": 0,
                 "message": ""

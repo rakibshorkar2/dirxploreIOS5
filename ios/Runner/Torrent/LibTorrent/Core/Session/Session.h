@@ -1,4 +1,4 @@
-﻿//
+//
 //  TorrentSession.h
 //  TorrentKit
 //
@@ -30,6 +30,7 @@ typedef NS_ENUM(NSUInteger, ErrorCode) {
 - (void)torrentManager:(Session *)manager didErrorOccur:(NSError *)error;
 @end
 
+__attribute__((objc_subclassing_restricted))
 @interface StorageModel : NSObject
 @property (readwrite, strong, nonatomic) NSUUID* uuid;
 @property (readwrite, strong, nonatomic) NSString* name;
