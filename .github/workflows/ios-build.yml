@@ -26,6 +26,13 @@ jobs:
         with:
           channel: stable
 
+      - name: Install libtorrent build dependencies
+        run: brew install boost cmake openssl@3
+
+      - name: Build native libtorrent library
+        run: |
+          bash scripts/build-libtorrent-ios.sh
+
       - run: flutter pub get
 
       - run: flutter build ios --release --no-codesign

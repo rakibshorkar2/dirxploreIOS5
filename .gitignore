@@ -62,3 +62,8 @@ app.*.map.json
 
 # macOS
 .DS_Store
+
+# libtorrent native build artifacts
+/ios/Runner/Torrent/LibTorrent/libtorrent-build/
+/ios/Runner/Torrent/LibTorrent/libtorrent-rasterbar.a
+

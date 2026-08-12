@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "LibTorrent/LibTorrent-Swift.h"
+#import "Runner-Swift.h"
 
 #import "Session_Internal.h"
 #import "Downloadable.h"
