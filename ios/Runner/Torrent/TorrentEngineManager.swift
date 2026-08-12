@@ -55,8 +55,8 @@ import Flutter
         )
 
         if let session = self.session {
-            session.addDelegate(self)
-            session.restoreSession()
+            session.add(self)
+            session.restore()
             self.isInitialized = true
             completion(true)
         } else {
@@ -67,7 +67,7 @@ import Flutter
     func shutdown() {
         guard let session = session else { return }
         session.pause()
-        session.removeDelegate(self)
+        session.remove(self)
         self.session = nil
         self.isInitialized = false
     }
@@ -95,7 +95,7 @@ import Flutter
         }
 
         let fileURL = URL(fileURLWithPath: filePath)
-        let torrentFile = TorrentFile(unsafeWithFileAtURL: fileURL)
+        let torrentFile = TorrentFile(unsafeWithFileAt: fileURL)
         if let handle = session.addTorrent(torrentFile) {
             handle.updateSnapshot()
             let dict = torrentToDictionary(handle)
