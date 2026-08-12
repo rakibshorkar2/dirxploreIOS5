@@ -1,4 +1,4 @@
-//
+﻿//
 //  Downloadable.h
 //  TorrentKit
 //
@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <LibTorrent/TorrentHandle.h>
+#import "../../TorrentHandle/TorrentHandle.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

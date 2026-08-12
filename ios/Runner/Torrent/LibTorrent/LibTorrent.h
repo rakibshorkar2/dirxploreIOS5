@@ -13,20 +13,18 @@ FOUNDATION_EXPORT double LibTorrentVersionNumber;
 //! Project version string for LibTorrent.
 FOUNDATION_EXPORT const unsigned char LibTorrentVersionString[];
 
-// In this header, you should import all the public headers of your framework using statements like #import <LibTorrent/PublicHeader.h>
-
-#import <LibTorrent/Session.h>
-#import <LibTorrent/FileEntry.h>
-#import <LibTorrent/FilePriority.h>
-#import <LibTorrent/TorrentTracker.h>
-#import <LibTorrent/TorrentHandleSnapshot.h>
-#import <LibTorrent/TorrentHandle.h>
-#import <LibTorrent/TorrentHandleState.h>
-#import <LibTorrent/Downloadable.h>
-#import <LibTorrent/TorrentFile.h>
-#import <LibTorrent/MagnetURI.h>
-#import <LibTorrent/NSData+Hex.h>
-#import <LibTorrent/ExceptionCatcher.h>
-#import <LibTorrent/LibTorrentVersion.h>
+#import "Core/Session/Session.h"
+#import "Core/FileEntry/FileEntry.h"
+#import "Core/FileEntry/FilePriority.h"
+#import "Core/TorrentTracker/TorrentTracker.h"
+#import "Core/TorrentHandleSnapshot/TorrentHandleSnapshot.h"
+#import "Core/TorrentHandle/TorrentHandle.h"
+#import "Core/TorrentHandle/TorrentHandleState.h"
+#import "Core/TorrentFile/Downloadable/Downloadable.h"
+#import "Core/TorrentFile/File/TorrentFile.h"
+#import "Core/TorrentFile/Magnet/MagnetURI.h"
+#import "Utils/NSData+Hex.h"
+#import "Utils/ExceptionCatcher.h"
+#import "Utils/LibTorrentVersion.h"
 
 

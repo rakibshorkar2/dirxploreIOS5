@@ -1,4 +1,4 @@
-//
+﻿//
 //  FileEntry.h
 //  TorrentKit
 //
@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <LibTorrent/FilePriority.h>
+#import "FilePriority.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

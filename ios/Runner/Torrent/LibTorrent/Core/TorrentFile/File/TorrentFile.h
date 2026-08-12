@@ -1,4 +1,4 @@
-//
+﻿//
 //  TorrentFile.h
 //  TorrentKit
 //
@@ -7,8 +7,8 @@
 
 #import <Foundation/Foundation.h>
 
-#import <LibTorrent/Downloadable.h>
-#import <LibTorrent/FileEntry.h>
+#import "../Downloadable/Downloadable.h"
+#import "../../FileEntry/FileEntry.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

@@ -1,2 +1,2 @@
 #import "GeneratedPluginRegistrant.h"
-#import <LibTorrent/LibTorrent.h>
+#import "Torrent/LibTorrent/LibTorrent.h"

@@ -1,4 +1,4 @@
-//
+﻿//
 //  TorrentSession.h
 //  TorrentKit
 //
@@ -7,10 +7,10 @@
 
 #import <Foundation/Foundation.h>
 
-#import <LibTorrent/Downloadable.h>
-#import <LibTorrent/TorrentFile.h>
-#import <LibTorrent/FileEntry.h>
-#import <LibTorrent/SessionSettings.h>
+#import "../TorrentFile/Downloadable/Downloadable.h"
+#import "../TorrentFile/File/TorrentFile.h"
+#import "../FileEntry/FileEntry.h"
+#import "../SessionSettings/SessionSettings.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
