@@ -752,10 +752,10 @@
 					"$(inherited)",
 					"$(SRCROOT)/Runner/Torrent",
 					"$(SRCROOT)/Runner/Torrent/LibTorrent/Thirdparty/libtorrent/include",
-					/opt/homebrew/include,
-					/usr/local/include,
-					/opt/homebrew/opt/openssl@3/include,
-					/usr/local/opt/openssl@3/include,
+					"/opt/homebrew/include",
+					"/usr/local/include",
+					"/opt/homebrew/opt/openssl@3/include",
+					"/usr/local/opt/openssl@3/include",
 				);
 			};
 			name = Profile;
@@ -951,10 +951,10 @@
 					"$(inherited)",
 					"$(SRCROOT)/Runner/Torrent",
 					"$(SRCROOT)/Runner/Torrent/LibTorrent/Thirdparty/libtorrent/include",
-					/opt/homebrew/include,
-					/usr/local/include,
-					/opt/homebrew/opt/openssl@3/include,
-					/usr/local/opt/openssl@3/include,
+					"/opt/homebrew/include",
+					"/usr/local/include",
+					"/opt/homebrew/opt/openssl@3/include",
+					"/usr/local/opt/openssl@3/include",
 				);
 			};
 			name = Debug;
@@ -991,10 +991,10 @@
 					"$(inherited)",
 					"$(SRCROOT)/Runner/Torrent",
 					"$(SRCROOT)/Runner/Torrent/LibTorrent/Thirdparty/libtorrent/include",
-					/opt/homebrew/include,
-					/usr/local/include,
-					/opt/homebrew/opt/openssl@3/include,
-					/usr/local/opt/openssl@3/include,
+					"/opt/homebrew/include",
+					"/usr/local/include",
+					"/opt/homebrew/opt/openssl@3/include",
+					"/usr/local/opt/openssl@3/include",
 				);
 			};
 			name = Release;
