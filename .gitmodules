@@ -1,6 +1,4 @@
-[submodule "Submodules_extracted/Submodules/LibTorrent-Swift/Thirdparty/libtorrent"]
-	path = Submodules_extracted/Submodules/LibTorrent-Swift/Thirdparty/libtorrent
-	url = https://github.com/arvidn/libtorrent.git
 [submodule "ios/Runner/Torrent/LibTorrent/Thirdparty/libtorrent"]
 	path = ios/Runner/Torrent/LibTorrent/Thirdparty/libtorrent
 	url = https://github.com/arvidn/libtorrent.git
+
