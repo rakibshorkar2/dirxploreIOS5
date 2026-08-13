@@ -760,6 +760,10 @@
 					"/opt/homebrew/opt/openssl@3/include",
 					"/usr/local/opt/openssl@3/include",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Runner/Torrent/LibTorrent",
+				);
 			};
 			name = Profile;
 		};
@@ -959,6 +963,10 @@
 					"/opt/homebrew/opt/openssl@3/include",
 					"/usr/local/opt/openssl@3/include",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Runner/Torrent/LibTorrent",
+				);
 			};
 			name = Debug;
 		};
@@ -998,6 +1006,10 @@
 					"/usr/local/include",
 					"/opt/homebrew/opt/openssl@3/include",
 					"/usr/local/opt/openssl@3/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Runner/Torrent/LibTorrent",
 				);
 			};
 			name = Release;
