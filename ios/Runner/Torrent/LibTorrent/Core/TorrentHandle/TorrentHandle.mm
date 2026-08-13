@@ -381,21 +381,31 @@ static std::vector<lt::download_priority_t> piecePrioritiesForFiles(
         std::vector<lt::peer_info> peers;
         handle.get_peer_info(peers);
         for (const auto &p : peers) {
-            std::string ipStr = p.ip.address().to_string();
-            std::string clientStr = p.client;
-            BOOL isSeed = (p.flags & lt::peer_info::seed) != 0;
-            BOOL isUtp = (p.flags & lt::peer_info::utp) != 0;
+            BOOL isI2p = static_cast<bool>(p.flags & lt::peer_info::i2p_socket);
+            BOOL isUtp = static_cast<bool>(p.flags & lt::peer_info::utp_socket);
+            BOOL isSeed = static_cast<bool>(p.flags & lt::peer_info::seed);
             std::string connType = isUtp ? "uTP" : "BitTorrent";
 
+            // i2p peers have no IP endpoint; remote_endpoint() is only valid
+            // for regular TCP/uTP connections.
+            std::string ipStr;
+            int port = 0;
+            if (!isI2p) {
+                lt::tcp::endpoint endpoint = p.remote_endpoint();
+                ipStr = endpoint.address().to_string();
+                port = endpoint.port();
+            }
+
+            NSString *ip = ipStr.empty() ? @"" : [NSString stringWithUTF8String:ipStr.c_str()];
             [result addObject:@{
-                @"ip": [NSString stringWithUTF8String:ipStr.c_str()] ?: @"",
-                @"port": @(p.ip.port()),
-                @"client": [NSString stringWithUTF8String:clientStr.c_str()] ?: @"",
+                @"ip": ip,
+                @"port": @(port),
+                @"client": [NSString stringWithUTF8String:p.client.c_str()] ?: @"",
                 @"country": @"",
                 @"downloadSpeed": @(p.down_speed),
                 @"uploadSpeed": @(p.up_speed),
                 @"progress": @(p.progress),
-                @"flags": @(p.flags),
+                @"flags": @(static_cast<unsigned int>(p.flags)),
                 @"connectionType": [NSString stringWithUTF8String:connType.c_str()],
                 @"isSeed": @(isSeed)
             }];
