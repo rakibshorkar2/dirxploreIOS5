@@ -47,6 +47,7 @@
 		DF0000000000000000000015 /* libtorrent-rasterbar.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AF0000000000000000000045 /* libtorrent-rasterbar.a */; };
 		DF0000000000000000000016 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = EF0000000000000000000002 /* OpenSSL */; };
 		DF0000000000000000000017 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF0000000000000000000046 /* CoreLocation.framework */; };
+		DF0000000000000000000018 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF0000000000000000000047 /* SystemConfiguration.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -163,6 +164,7 @@
 		AF0000000000000000000044 /* LibTorrentVersion.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LibTorrentVersion.mm; sourceTree = "<group>"; };
 		AF0000000000000000000045 /* libtorrent-rasterbar.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = "libtorrent-rasterbar.a"; sourceTree = "<group>"; };
 		AF0000000000000000000046 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		AF0000000000000000000047 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -173,6 +175,7 @@
 				DF0000000000000000000015 /* libtorrent-rasterbar.a in Frameworks */,
 				DF0000000000000000000016 /* OpenSSL in Frameworks */,
 				DF0000000000000000000017 /* CoreLocation.framework in Frameworks */,
+				DF0000000000000000000018 /* SystemConfiguration.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
