@@ -91,7 +91,7 @@ import Flutter
         )
 
         if let session = self.session {
-            session.addDelegate(self)
+            session.add(self)
             // restoreSession() is called inside Session init already
             self.isInitialized = true
             completion(true)
@@ -105,7 +105,7 @@ import Flutter
     func shutdown() {
         guard let session = session else { return }
         session.pause()
-        session.removeDelegate(self)
+        session.remove(self)
         // Stop the alert loop first; the Session must not be deallocated while
         // the alert thread is still using the underlying lt::session.
         session.stop()
@@ -226,7 +226,7 @@ import Flutter
         guard url.path.hasPrefix(docs.path) else { return nil }
         try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
         let uuid = storageUUID(forPath: url.path)
-        session.registerStorageWithPath(url.path, uuid: uuid)
+        session.registerStorage(withPath: url.path, uuid: uuid)
         return uuid
     }
 
@@ -265,7 +265,7 @@ import Flutter
         }
 
         let fileURL = URL(fileURLWithPath: filePath)
-        guard let torrentFile = TorrentFile(unsafeWithFileAtURL: fileURL) else {
+        guard let torrentFile = TorrentFile(unsafeWithFileAt: fileURL) else {
             completion(nil)
             return
         }
