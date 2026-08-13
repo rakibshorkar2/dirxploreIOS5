@@ -175,37 +175,61 @@ std::unordered_map<lt::sha1_hash, std::unordered_map<std::string, std::unordered
 }
 
 - (void)startDht {
-    try { _session->start_dht(); }
+    try {
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_dht, true);
+        _session->apply_settings(pack);
+    }
     catch (std::exception const &e) { NSLog(@"start_dht failed: %s", e.what()); }
     catch (...) { NSLog(@"start_dht failed with unknown exception"); }
 }
 
 - (void)stopDht {
-    try { _session->stop_dht(); }
+    try {
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_dht, false);
+        _session->apply_settings(pack);
+    }
     catch (std::exception const &e) { NSLog(@"stop_dht failed: %s", e.what()); }
     catch (...) { NSLog(@"stop_dht failed with unknown exception"); }
 }
 
 - (void)startUpnp {
-    try { _session->start_upnp(); }
+    try {
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_upnp, true);
+        _session->apply_settings(pack);
+    }
     catch (std::exception const &e) { NSLog(@"start_upnp failed: %s", e.what()); }
     catch (...) { NSLog(@"start_upnp failed with unknown exception"); }
 }
 
 - (void)stopUpnp {
-    try { _session->stop_upnp(); }
+    try {
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_upnp, false);
+        _session->apply_settings(pack);
+    }
     catch (std::exception const &e) { NSLog(@"stop_upnp failed: %s", e.what()); }
     catch (...) { NSLog(@"stop_upnp failed with unknown exception"); }
 }
 
 - (void)startNatPmp {
-    try { _session->start_natpmp(); }
+    try {
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_natpmp, true);
+        _session->apply_settings(pack);
+    }
     catch (std::exception const &e) { NSLog(@"start_natpmp failed: %s", e.what()); }
     catch (...) { NSLog(@"start_natpmp failed with unknown exception"); }
 }
 
 - (void)stopNatPmp {
-    try { _session->stop_natpmp(); }
+    try {
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_natpmp, false);
+        _session->apply_settings(pack);
+    }
     catch (std::exception const &e) { NSLog(@"stop_natpmp failed: %s", e.what()); }
     catch (...) { NSLog(@"stop_natpmp failed with unknown exception"); }
 }
