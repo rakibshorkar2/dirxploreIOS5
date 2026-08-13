@@ -183,6 +183,10 @@ static void mergeTorrentFileParams(
     }
 
     _params->storage_mode = session.settings.preallocateStorage ? lt::storage_mode_allocate : lt::storage_mode_sparse;
+
+    if (session.settings.maxConnectionsPerTorrent > 0) {
+        _params->max_connections = (int)session.settings.maxConnectionsPerTorrent;
+    }
 }
 
 - (void)configureAfterAdded:(TorrentHandle *)torrentHandle {

@@ -47,6 +47,9 @@ NS_SWIFT_NAME(Session.Settings)
 @property (readwrite, nonatomic) SessionSettingsEncryptionPolicy encryptionPolicy;
 @property (readwrite, nonatomic) BOOL validateHttpsTrackers;
 
+@property (readwrite, nonatomic) NSInteger maxConnections;
+@property (readwrite, nonatomic) NSInteger maxConnectionsPerTorrent;
+
 @property (readwrite, nonatomic) NSInteger port;
 @property (readwrite, nonatomic) NSInteger portBindRetries;
 

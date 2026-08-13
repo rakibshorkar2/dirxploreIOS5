@@ -31,7 +31,10 @@ class TorrentService {
 
   String? extractInfoHashFromMagnet(String uri) {
     if (!isValidMagnet(uri)) return null;
-    final reg = RegExp(r'urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})', caseSensitive: false);
+    final reg = RegExp(
+      r'urn:btih:([a-fA-F0-9]{64}|[a-zA-Z2-7]{52}|[a-fA-F0-9]{40}|[a-zA-Z2-7]{32})',
+      caseSensitive: false,
+    );
     final match = reg.firstMatch(uri);
     return match?.group(1)?.toLowerCase();
   }

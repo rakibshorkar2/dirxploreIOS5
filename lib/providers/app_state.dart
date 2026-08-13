@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
-import 'dart:io' show Platform;
 
 class AppState with ChangeNotifier {
   static const MethodChannel _iosChannel =
@@ -94,23 +93,12 @@ class AppState with ChangeNotifier {
 
     // Set platform-appropriate default save path
     if (_defaultSavePath.isEmpty) {
-      if (Platform.isAndroid) {
-        _defaultSavePath = '/storage/emulated/0/Download/DirXplore';
-      } else if (Platform.isIOS) {
-        try {
-          final path = await _iosChannel.invokeMethod<String>('getSavePath');
-          _defaultSavePath = path ?? '${(await getApplicationDocumentsDirectory()).path}/DirXplore';
-        } catch (_) {
-          final dir = await getApplicationDocumentsDirectory();
-          _defaultSavePath = '${dir.path}/DirXplore';
-        }
-      } else {
-        try {
-          final dir = await getApplicationDocumentsDirectory();
-          _defaultSavePath = '${dir.path}/DirXplore';
-        } catch (_) {
-          _defaultSavePath = '/storage/emulated/0/Download/DirXplore';
-        }
+      try {
+        final path = await _iosChannel.invokeMethod<String>('getSavePath');
+        _defaultSavePath = path ?? '${(await getApplicationDocumentsDirectory()).path}/DirXplore';
+      } catch (_) {
+        final dir = await getApplicationDocumentsDirectory();
+        _defaultSavePath = '${dir.path}/DirXplore';
       }
     }
 
@@ -151,19 +139,17 @@ class AppState with ChangeNotifier {
     _brwsrLiveActivityEnabled = prefs.getBool('brwsrLiveActivityEnabled') ?? true;
     _brwsrBackgroundServiceEnabled = prefs.getBool('brwsrBackgroundServiceEnabled') ?? false;
 
-    if (Platform.isIOS) {
-      try {
-        const liveChannel = MethodChannel('com.dirxplore/live_activity');
-        const bgChannel = MethodChannel('com.dirxplore/background_services');
-        if (!_brwsrLiveActivityEnabled) {
-          await liveChannel.invokeMethod('disable');
-        }
-        if (!_brwsrBackgroundServiceEnabled) {
-          await bgChannel.invokeMethod('stopBackgroundServices');
-        }
-      } catch (e) {
-        debugPrint('Init channels sync error: $e');
+    try {
+      const liveChannel = MethodChannel('com.dirxplore/live_activity');
+      const bgChannel = MethodChannel('com.dirxplore/background_services');
+      if (!_brwsrLiveActivityEnabled) {
+        await liveChannel.invokeMethod('disable');
       }
+      if (!_brwsrBackgroundServiceEnabled) {
+        await bgChannel.invokeMethod('stopBackgroundServices');
+      }
+    } catch (e) {
+      debugPrint('Init channels sync error: $e');
     }
 
     // Load App Version
@@ -189,7 +175,6 @@ class AppState with ChangeNotifier {
   }
 
   Future<String?> pickDownloadFolder() async {
-    if (!Platform.isIOS) return null;
     try {
       final path = await _iosChannel.invokeMethod<String>('pickDownloadFolder');
       if (path != null && path.isNotEmpty) {
@@ -402,17 +387,15 @@ class AppState with ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('brwsrLiveActivityEnabled', enabled);
-    if (Platform.isIOS) {
-      try {
-        const liveChannel = MethodChannel('com.dirxplore/live_activity');
-        if (enabled) {
-          await liveChannel.invokeMethod('enable');
-        } else {
-          await liveChannel.invokeMethod('disable');
-        }
-      } catch (e) {
-        debugPrint('LiveActivity toggle error: $e');
+    try {
+      const liveChannel = MethodChannel('com.dirxplore/live_activity');
+      if (enabled) {
+        await liveChannel.invokeMethod('enable');
+      } else {
+        await liveChannel.invokeMethod('disable');
       }
+    } catch (e) {
+      debugPrint('LiveActivity toggle error: $e');
     }
   }
 
@@ -421,17 +404,15 @@ class AppState with ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('brwsrBackgroundServiceEnabled', enabled);
-    if (Platform.isIOS) {
-      try {
-        const bgChannel = MethodChannel('com.dirxplore/background_services');
-        if (enabled) {
-          await bgChannel.invokeMethod('startBackgroundServices');
-        } else {
-          await bgChannel.invokeMethod('stopBackgroundServices');
-        }
-      } catch (e) {
-        debugPrint('BackgroundService toggle error: $e');
+    try {
+      const bgChannel = MethodChannel('com.dirxplore/background_services');
+      if (enabled) {
+        await bgChannel.invokeMethod('startBackgroundServices');
+      } else {
+        await bgChannel.invokeMethod('stopBackgroundServices');
       }
+    } catch (e) {
+      debugPrint('BackgroundService toggle error: $e');
     }
   }
 }

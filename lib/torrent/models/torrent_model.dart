@@ -65,8 +65,11 @@ enum TorrentStatus {
 
 class TorrentModel {
   final String infoHash;
+  final String? v1InfoHash;
+  final String? v2InfoHash;
   final String name;
   final TorrentStatus status;
+  final bool hasMetadata;
   final double progress;
   final int downloadSpeed;
   final int uploadSpeed;
@@ -90,8 +93,11 @@ class TorrentModel {
 
   const TorrentModel({
     required this.infoHash,
+    this.v1InfoHash,
+    this.v2InfoHash,
     required this.name,
     required this.status,
+    this.hasMetadata = true,
     required this.progress,
     required this.downloadSpeed,
     required this.uploadSpeed,
@@ -164,22 +170,35 @@ class TorrentModel {
       magnetUri: json['magnetUri'] as String? ?? json['magnetLink'] as String?,
       torrentFilePath: json['torrentFilePath'] as String?,
       savePath: json['savePath'] as String? ?? json['downloadPath'] as String?,
-      addedDate: json['addedDate'] != null
-          ? DateTime.tryParse(json['addedDate'].toString())
-          : DateTime.now(),
+      addedDate: _parseAddedDate(json['addedDate']),
       errorMessage: json['errorMessage'] as String?,
       isSequential: json['isSequential'] as bool? ?? false,
+      hasMetadata: json['hasMetadata'] as bool? ?? true,
+      v1InfoHash: json['v1InfoHash'] as String?,
+      v2InfoHash: json['v2InfoHash'] as String?,
       files: files,
       trackers: trackers,
       peerList: peerList,
     );
   }
 
+  static DateTime? _parseAddedDate(dynamic raw) {
+    if (raw == null) return DateTime.now();
+    if (raw is num && raw > 0) {
+      return DateTime.fromMillisecondsSinceEpoch((raw * 1000).toInt());
+    }
+    if (raw is String) return DateTime.tryParse(raw);
+    return DateTime.now();
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'infoHash': infoHash,
+      if (v1InfoHash != null) 'v1InfoHash': v1InfoHash,
+      if (v2InfoHash != null) 'v2InfoHash': v2InfoHash,
       'name': name,
       'status': status.name,
+      'hasMetadata': hasMetadata,
       'progress': progress,
       'downloadSpeed': downloadSpeed,
       'uploadSpeed': uploadSpeed,
@@ -205,8 +224,11 @@ class TorrentModel {
 
   TorrentModel copyWith({
     String? infoHash,
+    String? v1InfoHash,
+    String? v2InfoHash,
     String? name,
     TorrentStatus? status,
+    bool? hasMetadata,
     double? progress,
     int? downloadSpeed,
     int? uploadSpeed,
@@ -230,8 +252,11 @@ class TorrentModel {
   }) {
     return TorrentModel(
       infoHash: infoHash ?? this.infoHash,
+      v1InfoHash: v1InfoHash ?? this.v1InfoHash,
+      v2InfoHash: v2InfoHash ?? this.v2InfoHash,
       name: name ?? this.name,
       status: status ?? this.status,
+      hasMetadata: hasMetadata ?? this.hasMetadata,
       progress: progress ?? this.progress,
       downloadSpeed: downloadSpeed ?? this.downloadSpeed,
       uploadSpeed: uploadSpeed ?? this.uploadSpeed,

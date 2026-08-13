@@ -4,6 +4,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="ios/Runner/Torrent/LibTorrent"
 
+LIBTORRENT_SRC="$ROOT/Thirdparty/libtorrent"
+if [ ! -f "$LIBTORRENT_SRC/CMakeLists.txt" ] || [ ! -d "$LIBTORRENT_SRC/include" ] || [ ! -d "$LIBTORRENT_SRC/src" ]; then
+    echo "ERROR: libtorrent source/headers missing at $LIBTORRENT_SRC." >&2
+    echo "Ensure submodules are initialized: git submodule update --init --recursive" >&2
+    exit 1
+fi
+
+echo "==> Validated libtorrent source files exist at $LIBTORRENT_SRC"
+
 OPENSSL_ROOT="$(brew --prefix openssl@3 2>/dev/null || echo /opt/homebrew/opt/openssl@3)"
 if [ ! -d "$OPENSSL_ROOT" ]; then
     echo "OpenSSL not found at $OPENSSL_ROOT. Install with: brew install openssl@3" >&2

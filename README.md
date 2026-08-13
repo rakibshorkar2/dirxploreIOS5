@@ -7,7 +7,7 @@
   <p>
     <img src="https://img.shields.io/badge/Flutter-3.5+-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter">
     <img src="https://img.shields.io/badge/Dart-3.5+-0175C2?style=flat-square&logo=dart&logoColor=white" alt="Dart">
-    <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-34A853?style=flat-square&logo=android&logoColor=white" alt="Platform">
+    <img src="https://img.shields.io/badge/Platform-iOS-34A853?style=flat-square&logo=apple&logoColor=white" alt="Platform">
     <img src="https://img.shields.io/badge/iOS-16.1+-000000?style=flat-square&logo=apple&logoColor=white" alt="iOS">
     <img src="https://img.shields.io/badge/License-MIT-FF6B6B?style=flat-square" alt="License">
     <img src="https://img.shields.io/badge/PRs-Welcome-8A2BE2?style=flat-square" alt="PRs">
@@ -19,7 +19,7 @@
 
 ## 🚀 What is DirXplore?
 
-A powerful **open directory browser** and **download manager** for iOS & Android. Browse HTTP/FTP directory listings, download files with resume support, manage downloads in the background, stream media, route traffic through proxies, and more — all in one polished app.
+A powerful **open directory browser** and **download manager** for iOS. Browse HTTP/FTP directory listings, download files with resume support, manage downloads in the background, stream media, route traffic through proxies, and more — all in one polished app.
 
 ---
 
@@ -62,7 +62,7 @@ A powerful **open directory browser** and **download manager** for iOS & Android
 | 📊 | **Speed & ETA** — Real-time speed (EMA smoothing) + remaining time |
 | 📦 | **Batch Grouping** — Expandable folder-level progress tiles |
 | 📋 | **Queue Export/Import** — JSON backup via share sheet / file picker |
-| 🔐 | **Hash Verification** — MD5 / SHA1 / SHA256 via Dart isolate + native FFI |
+| 🔐 | **Hash Verification** — MD5 / SHA1 / SHA256 via Dart isolate |
 | 💾 | **Storage Analyzer** — Free/total disk space with usage bar |
 | 🔗 | **Refresh Link** — Re-validate expired URLs |
 | 📁 | **Share & Save** — Share files, open location, Save to Files (iOS) |
@@ -111,7 +111,7 @@ A powerful **open directory browser** and **download manager** for iOS & Android
 
 | | Feature |
 |-|---------|
-| 👤 | **Biometric Auth** — Face ID / Touch ID (iOS) & fingerprint (Android) |
+| 👤 | **Biometric Auth** — Face ID / Touch ID (iOS) |
 | 🔢 | **Custom PIN Lock** — 4–6 digit PIN with on-screen numpad |
 | 🔐 | **PIN Recovery** — Security question/answer for forgotten PIN |
 | ⏱️ | **Inactivity Auto-Lock** — Lock after 0s, 30s, 1m, or 2m |
@@ -146,7 +146,7 @@ A powerful **open directory browser** and **download manager** for iOS & Android
 ## 🛠️ Tech Stack
 
 ```
-Flutter 3.5+  │  Dart 3.5+  │  Swift  │  Kotlin  │  C++  │  Go
+Flutter 3.5+  │  Dart 3.5+  │  Swift  │  C++  │  Go
 ```
 
 | Area | Technologies |
@@ -158,7 +158,7 @@ Flutter 3.5+  │  Dart 3.5+  │  Swift  │  Kotlin  │  C++  │  Go
 | **Security** | local_auth (biometrics), crypto (hashing), custom PIN with recovery |
 | **Background** | flutter_local_notifications, flutter_background_service, workmanager |
 | **iOS Native** | URLSession background config, ActivityKit (Live Activities), WidgetKit |
-| **Native FFI** | Go (BFS crawler), C++ (file I/O & hashing), Dart Isolates |
+| **Native FFI** | Dart Isolates |
 | **Permissions** | permission_handler, wakelock_plus, battery_plus, connectivity_plus |
 
 ---
@@ -181,10 +181,10 @@ Flutter 3.5+  │  Dart 3.5+  │  Swift  │  Kotlin  │  C++  │  Go
 │   Proxy Tunnel   │  ┌─────────────────┐  │
 │   Isolates       │  │ DownloadPlugin  │  │
 │                  │  │ (Swift)         │  │
-│  ┌────────────┐  │  │ URLSession      │  │
-│  │ Go FFI     │  │  │ ActivityKit     │  │
-│  │ C++ FFI    │  │  │ Proxy Config    │  │
-│  └────────────┘  │  └─────────────────┘  │
+│                  │  │ URLSession      │  │
+│                  │  │ ActivityKit     │  │
+│                  │  │ Proxy Config    │  │
+│                  │  └─────────────────┘  │
 └──────────────────┴───────────────────────┘
 ```
 
@@ -204,9 +204,6 @@ flutter run
 
 # Build for iOS
 flutter build ios --release --no-codesign
-
-# Build for Android
-flutter build apk --release
 ```
 
 ---

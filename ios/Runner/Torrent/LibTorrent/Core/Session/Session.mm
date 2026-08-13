@@ -50,6 +50,11 @@ static NSString *FileEntriesQueueIdentifier = @"ru.xitrix.TorrentKit.Session.fil
 - (void)handleTorrentError:(lt::torrent_error_alert *)alert;
 @end
 
+@interface Session (Lifecycle)
+@property (atomic) BOOL isStopped;
+@property (atomic) BOOL alertsLoopRunning;
+@end
+
 static lt::add_torrent_params magnetParams(lt::torrent_handle const &handle) {
     lt::add_torrent_params params;
     params.info_hashes = handle.info_hashes();
@@ -122,6 +127,87 @@ std::unordered_map<lt::sha1_hash, std::unordered_map<std::string, std::unordered
 
 - (void)resume {
     _session->resume();
+}
+
+- (void)stop {
+    if (self.isStopped) { return; }
+    self.isStopped = YES;
+
+    // abort() unblocks wait_for_alert() in the alert loop and stops the
+    // session's internal threads. The alerts thread then exits on the next
+    // iteration and signals alertsLoopRunning.
+    try {
+        _session->abort();
+    } catch (std::exception const &exception) {
+        NSString *message = [NSString stringWithUTF8String:exception.what()] ?: @"Unknown C++ exception";
+        [self reportErrorWithCode:ErrorCodeLibtorrentOperationFailed operation:@"stop" message:message];
+    } catch (...) {
+        [self reportErrorWithCode:ErrorCodeLibtorrentOperationFailed operation:@"stop" message:@"Unknown C++ exception"];
+    }
+
+    // Wait (max 1s) for the alerts thread to finish so the session can be
+    // deallocated without a use-after-free in the alert loop.
+    for (int i = 0; i < 50 && self.alertsLoopRunning; i++) {
+        [NSThread sleepForTimeInterval:0.02];
+    }
+}
+
+- (void)registerStorageWithPath:(NSString *)path uuid:(NSUUID *)uuid {
+    if (path.length == 0 || uuid == nil) { return; }
+
+    NSMutableDictionary<NSUUID*, StorageModel*> *storages = [_storages mutableCopy];
+    if (storages == nil) { storages = [NSMutableDictionary dictionary]; }
+    if (storages[uuid] != nil) { return; }
+
+    StorageModel *storage = [[StorageModel alloc] init];
+    storage.uuid = uuid;
+    storage.name = path.lastPathComponent;
+    // App-internal directories need no security-scoped bookmark. resolved and
+    // allowed are set directly so isStorageMissing and error recovery treat
+    // them as fully accessible.
+    storage.pathBookmark = [NSData data];
+    storage.URL = [NSURL fileURLWithPath:path];
+    storage.resolved = YES;
+    storage.allowed = YES;
+
+    storages[uuid] = storage;
+    _storages = storages;
+}
+
+- (void)startDht {
+    try { _session->start_dht(); }
+    catch (std::exception const &e) { NSLog(@"start_dht failed: %s", e.what()); }
+    catch (...) { NSLog(@"start_dht failed with unknown exception"); }
+}
+
+- (void)stopDht {
+    try { _session->stop_dht(); }
+    catch (std::exception const &e) { NSLog(@"stop_dht failed: %s", e.what()); }
+    catch (...) { NSLog(@"stop_dht failed with unknown exception"); }
+}
+
+- (void)startUpnp {
+    try { _session->start_upnp(); }
+    catch (std::exception const &e) { NSLog(@"start_upnp failed: %s", e.what()); }
+    catch (...) { NSLog(@"start_upnp failed with unknown exception"); }
+}
+
+- (void)stopUpnp {
+    try { _session->stop_upnp(); }
+    catch (std::exception const &e) { NSLog(@"stop_upnp failed: %s", e.what()); }
+    catch (...) { NSLog(@"stop_upnp failed with unknown exception"); }
+}
+
+- (void)startNatPmp {
+    try { _session->start_natpmp(); }
+    catch (std::exception const &e) { NSLog(@"start_natpmp failed: %s", e.what()); }
+    catch (...) { NSLog(@"start_natpmp failed with unknown exception"); }
+}
+
+- (void)stopNatPmp {
+    try { _session->stop_natpmp(); }
+    catch (std::exception const &e) { NSLog(@"stop_natpmp failed: %s", e.what()); }
+    catch (...) { NSLog(@"stop_natpmp failed with unknown exception"); }
 }
 
 - (void)reannounceToAllTrackers {
@@ -331,9 +417,12 @@ std::unordered_map<lt::sha1_hash, std::unordered_map<std::string, std::unordered
 #define ALERTS_LOOP_WAIT_MILLIS 500
 
 - (void)alertsLoop {
+    self.alertsLoopRunning = YES;
     auto max_wait = lt::milliseconds(ALERTS_LOOP_WAIT_MILLIS);
     while (YES) {
         @autoreleasepool {
+            if (self.isStopped) { break; }
+
             try {
                 auto const hasAlerts = _session->wait_for_alert(max_wait);
                 std::vector<lt::alert *> alerts_queue;
@@ -481,6 +570,7 @@ std::unordered_map<lt::sha1_hash, std::unordered_map<std::string, std::unordered
             [NSThread sleepForTimeInterval:0.1];
         }
     }
+    self.alertsLoopRunning = NO;
 }
 
 - (void)notifyDelegatesWithAdd:(TorrentHandle*) torrent {
@@ -626,7 +716,13 @@ std::unordered_map<lt::sha1_hash, std::unordered_map<std::string, std::unordered
     NSUUID *storageUUID = torrentHandle.storageUUID;
     if (storageUUID != nil) {
         StorageModel *storage = _storages[storageUUID];
-        storageAccessRestored = storage != nil && [storage resolveSequrityScopes];
+        if (storage != nil && storage.pathBookmark.length == 0) {
+            // App-internal storage (Documents): always accessible, so a storage
+            // error here is transient and worth one automatic retry.
+            storageAccessRestored = storage.allowed;
+        } else {
+            storageAccessRestored = storage != nil && [storage resolveSequrityScopes];
+        }
     }
 
     char const *errorFilename = alert->filename();

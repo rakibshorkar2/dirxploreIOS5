@@ -36,8 +36,6 @@ class _DownloadInterruptedException implements Exception {
 }
 
 class DownloadProvider with ChangeNotifier {
-  static const MethodChannel _channel =
-      MethodChannel('com.example.dirBrowser/downloads');
   static const MethodChannel _iosChannel =
       MethodChannel('com.dirxplore/ios_download');
   static const EventChannel _iosEvents =
@@ -52,8 +50,6 @@ class DownloadProvider with ChangeNotifier {
       MethodChannel('com.dirxplore/background_services');
   StreamSubscription? _iosEventSub;
   StreamSubscription? _liveActivityErrorSub;
-
-  final bool _isIOS = Platform.isIOS;
 
   final List<DownloadItem> _queue = [];
   final Map<String, CancelToken> _cancelTokens = {};
@@ -92,20 +88,17 @@ class DownloadProvider with ChangeNotifier {
   Future<void> init() async {
     await _loadQueue();
     await updateStorageInfo();
-    _channel.setMethodCallHandler(_handleNotificationAction);
 
-    if (_isIOS) {
-      _iosEventSub = _iosEvents.receiveBroadcastStream().listen(_handleiOSEvent);
-      _liveActivityErrorSub = _liveActivityErrorChannel.receiveBroadcastStream().listen((event) {
-        debugPrint('Live Activity error: $event');
-      });
-      _iosChannel.invokeMethod('getSavePath').then((path) {
-        if (path is String) {
-          debugPrint('iOS save path: $path');
-        }
-      }).catchError((e) { debugPrint('Channel method error: $e'); });
-      enableLiveActivity();
-    }
+    _iosEventSub = _iosEvents.receiveBroadcastStream().listen(_handleiOSEvent);
+    _liveActivityErrorSub = _liveActivityErrorChannel.receiveBroadcastStream().listen((event) {
+      debugPrint('Live Activity error: $event');
+    });
+    _iosChannel.invokeMethod('getSavePath').then((path) {
+      if (path is String) {
+        debugPrint('iOS save path: $path');
+      }
+    }).catchError((e) { debugPrint('Channel method error: $e'); });
+    enableLiveActivity();
   }
 
   void _handleiOSEvent(dynamic event) {
@@ -179,7 +172,6 @@ class DownloadProvider with ChangeNotifier {
         _queue.removeWhere((i) => i.id == downloadId);
         DatabaseHelper().deleteDownload(downloadId);
         if (_activeCount > 0) _activeCount--;
-        if (_activeCount == 0) _stopForegroundIfNoActive();
         notifyListeners();
         _processQueue();
         break;
@@ -202,32 +194,8 @@ class DownloadProvider with ChangeNotifier {
   @override
   void dispose() {
     _iosEventSub?.cancel();
+    _liveActivityErrorSub?.cancel();
     super.dispose();
-  }
-
-  Future<void> _handleNotificationAction(MethodCall call) async {
-    if (call.method == 'onNotificationAction') {
-      final String action = call.arguments['action'];
-      // final int notificationId = call.arguments['id']; // Unused for now as we use fixed ID 1001
-
-      // For now, we assume 1001 is the active download.
-      // In a multi-notification setup, we'd map notificationId to download ID.
-      // Since currently startForegroundService uses a fixed ID 1001:
-      final activeItem = _queue.firstWhere(
-        (i) => i.status == DownloadStatus.downloading,
-        orElse: () => DownloadItem(id: '', url: '', fileName: '', savePath: ''),
-      );
-
-      if (activeItem.id.isNotEmpty) {
-        if (action == 'pause') {
-          pause(activeItem.id);
-        } else if (action == 'resume') {
-          resume(activeItem.id);
-        } else if (action == 'cancel') {
-          stop(activeItem.id);
-        }
-      }
-    }
   }
 
   Future<void> _loadQueue() async {
@@ -403,14 +371,6 @@ class DownloadProvider with ChangeNotifier {
       notifyListeners();
     }
     _syncLiveActivityState();
-  }
-
-  void _stopForegroundIfNoActive() {
-    if (_activeCount <= 1) {
-      // 1 because we are about to decrement
-      _channel.invokeMethod(
-          'stopForegroundService', {'id': 1001}).catchError((e) { debugPrint('Channel method error: $e'); });
-    }
   }
 
   void resume(String id) {
@@ -592,9 +552,6 @@ class DownloadProvider with ChangeNotifier {
     // Recalculate active count if we deleted running items
     _activeCount =
         _queue.where((i) => i.status == DownloadStatus.downloading).length;
-    if (_activeCount == 0) {
-      _stopForegroundIfNoActive();
-    }
 
     _selectedIds.clear();
     _isSelectionMode = false;
@@ -621,7 +578,6 @@ class DownloadProvider with ChangeNotifier {
     }
 
     _activeCount = 0;
-    _stopForegroundIfNoActive();
     _saveQueue();
     notifyListeners();
     _syncLiveActivityState();
@@ -1203,15 +1159,6 @@ class DownloadProvider with ChangeNotifier {
     await DatabaseHelper().updateDownload(item);
     _showiOSNotification("Download Started", item.fileName);
 
-    // Start Foreground Service (Android only)
-    if (!_isIOS) {
-      _channel.invokeMethod('startForegroundService', {
-        'url': item.url,
-        'filename': item.fileName,
-        'id': 1001,
-      }).catchError((e) { debugPrint('Channel method error: $e'); });
-    }
-
     final cancelToken = CancelToken();
     _cancelTokens[item.id] = cancelToken;
 
@@ -1273,17 +1220,8 @@ class DownloadProvider with ChangeNotifier {
         await updateStorageInfo();
         _showiOSNotification("Download Complete", item.fileName);
 
-        if (!_isIOS) {
-          _channel.invokeMethod('stopForegroundService', {
-            'id': 1001,
-            'filename': item.fileName,
-            'success': true,
-          }).catchError((e) { debugPrint('Channel method error: $e'); });
-        }
-
         // Finalize state
         if (_activeCount > 0) {
-          _stopForegroundIfNoActive();
           _activeCount--;
         }
         await DatabaseHelper().updateDownload(item);
@@ -1317,14 +1255,6 @@ class DownloadProvider with ChangeNotifier {
       _cancelTokens.remove(item.id);
       autoCategorizeItem(item);
       await updateStorageInfo();
-
-      if (!_isIOS) {
-        _channel.invokeMethod('stopForegroundService', {
-          'id': 1001,
-          'filename': item.fileName,
-          'success': true,
-        }).catchError((e) { debugPrint('Channel method error: $e'); });
-      }
     } catch (e) {
       if (cancelToken.isCancelled) {
         // The user cancelled this download (pause/stop/clear/link change).
@@ -1336,9 +1266,6 @@ class DownloadProvider with ChangeNotifier {
       }
       _handleDownloadError(item, e);
     } finally {
-      if (!_isIOS) {
-        _stopForegroundIfNoActive();
-      }
       if (_activeCount > 0) {
         _activeCount--;
       }
@@ -1466,22 +1393,6 @@ class DownloadProvider with ChangeNotifier {
       item.etaSeconds = (remaining / item.speedBytesPerSec).round();
     }
 
-    int progressPercent = 0;
-    if (item.totalBytes > 0) {
-      progressPercent =
-          ((item.downloadedBytes / item.totalBytes) * 100).toInt();
-    }
-
-    _channel.invokeMethod('updateProgress', {
-      'id': 1001,
-      'progress': progressPercent,
-      'speed':
-          '${(item.speedBytesPerSec / 1024 / 1024).toStringAsFixed(2)} MB/s',
-      'filename': item.fileName,
-      'eta': _formatDuration(item.etaSeconds),
-      'size':
-          '${_formatSize(item.downloadedBytes)} / ${_formatSize(item.totalBytes)}',
-    }).catchError((e) { debugPrint('Channel method error: $e'); });
     _syncLiveActivityState();
 
     final now = DateTime.now();
@@ -1656,7 +1567,6 @@ class DownloadProvider with ChangeNotifier {
 
   // --- Live Activities (iOS 16.1+) ---
   Future<bool> isLiveActivitySupported() async {
-    if (!_isIOS) return false;
     try {
       return await _liveActivityChannel.invokeMethod('isSupported') ?? false;
     } catch (e) {
@@ -1666,7 +1576,6 @@ class DownloadProvider with ChangeNotifier {
   }
 
   void _syncLiveActivityState() {
-    if (!_isIOS) return;
     final active = _queue.where((d) => d.status == DownloadStatus.downloading).toList();
 
     if (active.isNotEmpty && !_backgroundServicesRunning) {
@@ -1703,7 +1612,6 @@ class DownloadProvider with ChangeNotifier {
   }
 
   void _showiOSNotification(String title, String body) {
-    if (!_isIOS) return;
     _iosNotificationChannel.invokeMethod('show', {
       'title': title,
       'body': body,
@@ -1711,7 +1619,6 @@ class DownloadProvider with ChangeNotifier {
   }
 
   Future<void> enableLiveActivity() async {
-    if (!_isIOS) return;
     try {
       await _liveActivityChannel.invokeMethod('enable');
       debugPrint('Live Activity enabled');
@@ -1721,7 +1628,6 @@ class DownloadProvider with ChangeNotifier {
   }
 
   Future<void> disableLiveActivity() async {
-    if (!_isIOS) return;
     try {
       await _liveActivityChannel.invokeMethod('disable');
     } catch (e) {
@@ -1730,7 +1636,6 @@ class DownloadProvider with ChangeNotifier {
   }
 
   Future<bool> isLiveActivityEnabled() async {
-    if (!_isIOS) return false;
     try {
       return await _liveActivityChannel.invokeMethod('isEnabled') ?? true;
     } catch (e) {
@@ -1800,17 +1705,13 @@ class DownloadProvider with ChangeNotifier {
   }
 
   void revealFile(String path) {
-    if (_isIOS) {
-      _iosChannel.invokeMethod('openFileLocation', {'path': path})
-          .catchError((e) { debugPrint('revealFile error: $e'); });
-    }
+    _iosChannel.invokeMethod('openFileLocation', {'path': path})
+        .catchError((e) { debugPrint('revealFile error: $e'); });
   }
 
   void saveToFiles(String path) {
-    if (_isIOS) {
-      _iosChannel.invokeMethod('saveToFiles', {'path': path})
-          .catchError((e) { debugPrint('saveToFiles error: $e'); });
-    }
+    _iosChannel.invokeMethod('saveToFiles', {'path': path})
+        .catchError((e) { debugPrint('saveToFiles error: $e'); });
   }
 }
 

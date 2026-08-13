@@ -74,6 +74,25 @@ typedef NS_ENUM(NSUInteger, ErrorCode) {
 - (void)pause;
 - (void)resume;
 
+/// Stops the alert loop and shuts the underlying session down.
+/// Must be called before the Session is deallocated.
+- (void)stop;
+
+/// Registers (or keeps) a storage model for the given app-internal path.
+/// Storage models are how libtorrent persists custom save paths across
+/// restarts: the fast-resume data stores the storage UUID, and restoreSession
+/// resolves it back to a path.
+- (void)registerStorageWithPath:(NSString *)path uuid:(NSUUID *)uuid;
+
+/// Runtime network toggles. These take effect immediately, unlike the
+/// settings-pack flags which only apply at session creation.
+- (void)startDht;
+- (void)stopDht;
+- (void)startUpnp;
+- (void)stopUpnp;
+- (void)startNatPmp;
+- (void)stopNatPmp;
+
 @end
 
 NS_ASSUME_NONNULL_END

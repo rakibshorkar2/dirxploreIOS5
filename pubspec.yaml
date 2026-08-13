@@ -48,7 +48,6 @@ dependencies:
   flutter_inappwebview: ^6.0.0
 
   # Phase 1: Core System Upgrades
-  flutter_displaymode: ^0.6.0
   dynamic_color: ^1.7.0
   wakelock_plus: ^1.2.8
   battery_plus: ^6.1.0
@@ -71,11 +70,8 @@ dependencies:
   liquid_glass_widgets: ^0.26.1
   media_kit: ^1.1.10
   media_kit_video: ^1.2.4
-  media_kit_libs_android_video: ^1.2.4
   media_kit_libs_ios_video: 1.1.4
-  ffi: ^2.2.0
   workmanager: ^0.9.0+3
-  android_intent_plus: ^5.0.2
   intl: ^0.19.0
 
 
@@ -92,10 +88,6 @@ flutter:
     - bypassempire.yaml
 
 flutter_launcher_icons:
-  android: true
   ios: true
   image_path: "assets/icon/app_icon_bg_filled.png"
   remove_alpha_ios: true
-  min_sdk_android: 21
-  adaptive_icon_background: "#0D1117"
-  adaptive_icon_foreground: "assets/icon/app_icon_bg_removed.png"

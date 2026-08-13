@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
@@ -85,9 +84,7 @@ class AppProxyProvider with ChangeNotifier {
     DioClient().setProxy(active);
 
     // Sync proxy config to iOS native downloader
-    if (Platform.isIOS) {
-      _syncProxyToIOS(active);
-    }
+    _syncProxyToIOS(active);
 
     notifyListeners();
   }

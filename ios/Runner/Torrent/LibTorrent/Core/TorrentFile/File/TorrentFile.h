@@ -19,8 +19,8 @@ NS_SWIFT_SENDABLE
 @property (readonly) NSArray<FileEntry *> *files;
 @property (readonly) BOOL isValid;
 
-- (instancetype)initUnsafeWithFileAtURL:(NSURL *)fileURL;
-- (instancetype)initUnsafeWithFileWithData:(NSData *)data ;
+- (nullable instancetype)initUnsafeWithFileAtURL:(NSURL *)fileURL;
+- (nullable instancetype)initUnsafeWithFileWithData:(NSData *)data ;
 
 - (FileEntry *)getFileAt:(int)index;
 - (void)setFilePriority:(FilePriority)priority at:(NSInteger)fileIndex;

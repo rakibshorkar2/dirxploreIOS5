@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'dart:ui';
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:local_auth/local_auth.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -75,12 +73,6 @@ void main() async {
     ),
   );
 
-  try {
-    await FlutterDisplayMode.setHighRefreshRate();
-  } catch (e) {
-    debugPrint('Failed to set high refresh rate: $e');
-  }
-
   final appState = AppState();
   await appState.init();
 
@@ -139,7 +131,7 @@ class _OpenDirAppWrapperState extends State<OpenDirAppWrapper> {
 
   Future<void> _requestNotificationPermission() async {
     final status = await Permission.notification.status;
-    if (Platform.isIOS && status.isRestricted) {
+    if (status.isRestricted) {
       await Permission.notification.request();
     } else if (status.isDenied) {
       await Permission.notification.request();

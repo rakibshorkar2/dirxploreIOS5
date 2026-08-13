@@ -15,7 +15,7 @@ NS_SWIFT_SENDABLE
 @interface MagnetURI : NSObject <Downloadable>
 @property (readonly, strong, nonatomic) NSURL *magnetURI;
 
-- (instancetype)initUnsafeWithMagnetURI:(NSURL *)magnetURI;
+- (nullable instancetype)initUnsafeWithMagnetURI:(NSURL *)magnetURI;
 
 @end
 

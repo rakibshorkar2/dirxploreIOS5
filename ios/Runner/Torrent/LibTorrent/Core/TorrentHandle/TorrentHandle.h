@@ -1,4 +1,4 @@
-﻿//
+//
 //  NSObject+TorrentHandle.h
 //  TorrentKit
 //
@@ -52,6 +52,10 @@ NS_SWIFT_NAME(TorrentHashes)
 - (void)removeTrackers:(NSArray<NSString *> *)urls;
 - (void)forceReannounce;
 - (void)forceReannounce:(int)index;
+
+- (NSArray<NSDictionary<NSString *, id> *> *)getPeerInfo;
+
+- (void)setMaxConnections:(NSInteger)connections;
 
 - (void)updateSnapshot;
 @end

@@ -25,10 +25,10 @@ class GithubUpdater {
         String? downloadUrl;
         if (assets != null && assets.isNotEmpty) {
           try {
-            // Priority: Assets ending with .apk
-            final apkAsset =
-                assets.firstWhere((a) => a['name'].toString().endsWith('.apk'));
-            downloadUrl = apkAsset['browser_download_url'];
+            // Priority: Assets ending with .ipa
+            final ipaAsset =
+                assets.firstWhere((a) => a['name'].toString().endsWith('.ipa'));
+            downloadUrl = ipaAsset['browser_download_url'];
           } catch (_) {
             // Fallback: Just take the first asset
             downloadUrl = assets[0]['browser_download_url'];

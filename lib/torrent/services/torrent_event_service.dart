@@ -32,7 +32,8 @@ class TorrentMetadataReceivedEvent extends TorrentEvent {
 class TorrentCompletedEvent extends TorrentEvent {
   final String infoHash;
   final String name;
-  TorrentCompletedEvent(this.infoHash, this.name);
+  final Map<String, dynamic> torrentData;
+  TorrentCompletedEvent(this.infoHash, this.name, this.torrentData);
 }
 
 class TorrentStatsUpdatedEvent extends TorrentEvent {
@@ -98,9 +99,14 @@ class TorrentEventService {
         break;
       case 'torrentCompleted':
         if (map['infoHash'] is String) {
+          final torrentRaw = map['torrent'];
+          final torrentData = torrentRaw is Map
+              ? Map<String, dynamic>.from(torrentRaw)
+              : <String, dynamic>{};
           _eventController.add(TorrentCompletedEvent(
             map['infoHash'] as String,
-            map['name'] as String? ?? 'Torrent',
+            torrentData['name'] as String? ?? map['name'] as String? ?? 'Torrent',
+            torrentData,
           ));
         }
         break;

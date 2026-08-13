@@ -16,6 +16,7 @@
 #import "libtorrent/torrent_status.hpp"
 #import "libtorrent/torrent_info.hpp"
 #import "libtorrent/magnet_uri.hpp"
+#import "libtorrent/peer_info.hpp"
 
 typedef void (^TorrentHandleOperation)(lt::torrent_handle const &handle);
 
@@ -371,6 +372,45 @@ static std::vector<lt::download_priority_t> piecePrioritiesForFiles(
 - (void)forceReannounce:(int)index {
     [self performOperation:@"forceReannounce" action:^(lt::torrent_handle const &handle) {
         handle.force_reannounce(0, index);
+    }];
+}
+
+- (NSArray<NSDictionary<NSString *, id> *> *)getPeerInfo {
+    __block NSMutableArray<NSDictionary<NSString *, id> *> *result = [NSMutableArray array];
+    [self performOperation:@"getPeerInfo" action:^(lt::torrent_handle const &handle) {
+        std::vector<lt::peer_info> peers;
+        handle.get_peer_info(peers);
+        for (const auto &p : peers) {
+            std::string ipStr = p.ip.address().to_string();
+            std::string clientStr = p.client;
+            BOOL isSeed = (p.flags & lt::peer_info::seed) != 0;
+            BOOL isUtp = (p.flags & lt::peer_info::utp) != 0;
+            std::string connType = isUtp ? "uTP" : "BitTorrent";
+
+            [result addObject:@{
+                @"ip": [NSString stringWithUTF8String:ipStr.c_str()] ?: @"",
+                @"port": @(p.ip.port()),
+                @"client": [NSString stringWithUTF8String:clientStr.c_str()] ?: @"",
+                @"country": @"",
+                @"downloadSpeed": @(p.down_speed),
+                @"uploadSpeed": @(p.up_speed),
+                @"progress": @(p.progress),
+                @"flags": @(p.flags),
+                @"connectionType": [NSString stringWithUTF8String:connType.c_str()],
+                @"isSeed": @(isSeed)
+            }];
+        }
+    }];
+    return result;
+}
+
+- (void)setMaxConnections:(NSInteger)connections {
+    [self performOperation:@"setMaxConnections" action:^(lt::torrent_handle const &handle) {
+        if (connections > 0) {
+            handle.set_max_connections((int)connections);
+        } else {
+            handle.set_max_connections(-1);
+        }
     }];
 }
 

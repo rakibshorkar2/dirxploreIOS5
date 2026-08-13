@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'dart:io' show Platform;
 
 class HapticService {
   static bool _enabled = true;
@@ -12,11 +11,7 @@ class HapticService {
 
   static void light() {
     if (!_enabled) return;
-    if (Platform.isIOS) {
-      HapticFeedback.lightImpact();
-    } else {
-      HapticFeedback.lightImpact();
-    }
+    HapticFeedback.lightImpact();
   }
 
   static void medium() {

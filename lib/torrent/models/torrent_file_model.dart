@@ -1,6 +1,6 @@
 enum FilePriority {
   doNotDownload(0),
-  normal(1),
+  normal(4),
   high(7);
 
   final int rawValue;

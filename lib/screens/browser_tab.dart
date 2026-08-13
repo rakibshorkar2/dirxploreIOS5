@@ -1,9 +1,7 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../providers/browser_provider.dart';
 import '../providers/download_provider.dart';
@@ -11,8 +9,6 @@ import '../providers/app_state.dart';
 import '../models/directory_item.dart';
 import '../services/proxy_tunnel.dart';
 import '../services/haptic_service.dart';
-import 'package:android_intent_plus/android_intent.dart';
-import 'package:android_intent_plus/flag.dart';
 import 'media_player_screen.dart';
 import 'download_preview_screen.dart';
 
@@ -528,30 +524,6 @@ class _BrowserTabState extends State<BrowserTab> {
               child: FloatingActionButton.extended(
                 onPressed: () async {
                   HapticService.medium();
-                  bool hasPermission = Platform.isIOS; // iOS sandbox is always accessible
-                  if (!Platform.isIOS) {
-                    hasPermission = await Permission.manageExternalStorage.isGranted ||
-                        await Permission.storage.isGranted;
-                    if (!hasPermission) {
-                      final statusManage =
-                          await Permission.manageExternalStorage.request();
-                      final statusStorage = await Permission.storage.request();
-                      if (statusManage.isGranted || statusStorage.isGranted) {
-                        hasPermission = true;
-                      }
-                    }
-                  }
-
-                  if (!hasPermission) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Storage permission is required to download files.')),
-                      );
-                    }
-                    return;
-                  }
                   if (!mounted) {
                     return;
                   }
@@ -763,38 +735,19 @@ class _BrowserTabState extends State<BrowserTab> {
                 ],
               ),
             ),
-          if (isMedia && (Platform.isAndroid || Platform.isIOS))
+          if (isMedia)
             CupertinoActionSheetAction(
               onPressed: () async {
                 Navigator.pop(ctx);
-                final tunnelUrl = ProxyTunnel().getTunnelUrl(item.url);
-                if (Platform.isAndroid) {
-                  try {
-                    final intent = AndroidIntent(
-                      action: 'action_view',
-                      package: 'org.videolan.vlc',
-                      data: tunnelUrl,
-                      type: 'video/*',
-                      flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
-                    );
-                    await intent.launch();
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('VLC could not be launched. Ensure it is installed.')));
-                    }
-                  }
-                } else if (Platform.isIOS) {
-                  try {
-                    // Present share sheet with the original URL so user can open in VLC
-                    // VLC on iOS can't reach the local proxy tunnel, so use original URL
-                    const iosChannel = MethodChannel('com.dirxplore/ios_download');
-                    await iosChannel.invokeMethod('openURL', {'url': item.url});
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('VLC for iOS is not installed.')));
-                    }
+                try {
+                  // Present share sheet with the original URL so user can open in VLC
+                  // VLC on iOS can't reach the local proxy tunnel, so use original URL
+                  const iosChannel = MethodChannel('com.dirxplore/ios_download');
+                  await iosChannel.invokeMethod('openURL', {'url': item.url});
+                } catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('VLC for iOS is not installed.')));
                   }
                 }
               },
@@ -803,63 +756,6 @@ class _BrowserTabState extends State<BrowserTab> {
                   Icon(Icons.play_arrow, color: CupertinoColors.activeOrange, size: 22),
                   SizedBox(width: 12),
                   Text('Play with VLC'),
-                ],
-              ),
-            ),
-          if (isMedia && Platform.isAndroid)
-            CupertinoActionSheetAction(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final tunnelUrl = ProxyTunnel().getTunnelUrl(item.url);
-                try {
-                  final intent = AndroidIntent(
-                    action: 'action_view',
-                    package: 'com.mxtech.videoplayer.ad',
-                    data: tunnelUrl,
-                    type: 'video/*',
-                    flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
-                  );
-                  await intent.launch();
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('MX Player could not be launched. Ensure it is installed.')));
-                  }
-                }
-              },
-              child: const Row(
-                children: [
-                  Icon(Icons.play_arrow, color: CupertinoColors.systemPurple, size: 22),
-                  SizedBox(width: 12),
-                  Text('Play with MX Player'),
-                ],
-              ),
-            ),
-          if (Platform.isAndroid)
-            CupertinoActionSheetAction(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final tunnelUrl = ProxyTunnel().getTunnelUrl(item.url);
-                try {
-                  final intent = AndroidIntent(
-                    action: 'action_view',
-                    package: 'idm.internet.download.manager',
-                    data: tunnelUrl,
-                    flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
-                  );
-                  await intent.launch();
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('1DM could not be launched. Ensure it is installed.')));
-                  }
-                }
-              },
-              child: const Row(
-                children: [
-                  Icon(Icons.download, color: CupertinoColors.activeGreen, size: 22),
-                  SizedBox(width: 12),
-                  Text('Download using 1DM'),
                 ],
               ),
             ),

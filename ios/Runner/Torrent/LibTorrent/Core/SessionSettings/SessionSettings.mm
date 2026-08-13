@@ -86,12 +86,22 @@ lt::settings_pack::proxy_type_t proxyTypeConverter(SessionSettings *pack) {
             break;
     }
 
-    // Ports
-    settings.set_int(lt::settings_pack::max_retry_port_bind, (int)_portBindRetries);
+    // Connections limit
+    if (_maxConnections > 0) {
+        settings.set_int(lt::settings_pack::connections_limit, (int)_maxConnections);
+    }
 
-    // Interfaces
-    settings.set_str(lt::settings_pack::outgoing_interfaces, [_outgoingInterfaces UTF8String]);
-    settings.set_str(lt::settings_pack::listen_interfaces, [_listenInterfaces UTF8String]);
+    // Ports & Interfaces
+    settings.set_int(lt::settings_pack::max_retry_port_bind, (int)_portBindRetries);
+    if (_port > 0) {
+        std::string listenStr = "0.0.0.0:" + std::to_string(_port) + ",[::]:" + std::to_string(_port);
+        settings.set_str(lt::settings_pack::listen_interfaces, listenStr);
+    } else if ([_listenInterfaces length] > 0) {
+        settings.set_str(lt::settings_pack::listen_interfaces, [_listenInterfaces UTF8String]);
+    }
+    if ([_outgoingInterfaces length] > 0) {
+        settings.set_str(lt::settings_pack::outgoing_interfaces, [_outgoingInterfaces UTF8String]);
+    }
 
     // Proxy
     settings.set_int(lt::settings_pack::proxy_type, proxyTypeConverter(self));

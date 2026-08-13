@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:io' show File, Platform;
+import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -935,7 +935,7 @@ class _DownloadTabState extends State<DownloadTab> {
                 ],
               ),
             ),
-          if (isDone && fileExists && Platform.isIOS)
+          if (isDone && fileExists)
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -952,7 +952,7 @@ class _DownloadTabState extends State<DownloadTab> {
                 ],
               ),
             ),
-          if (isDone && fileExists && Platform.isIOS)
+          if (isDone && fileExists)
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(ctx);
