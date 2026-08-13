@@ -40,8 +40,19 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Determine version and build number
+        id: app_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
+          NAME="${VERSION%%+*}"
+          BUILD_NUMBER="${{ github.run_number }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "tag=v${NAME}+${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
       - name: Build iOS
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --build-name "${{ steps.app_version.outputs.build_name }}" --build-number "${{ steps.app_version.outputs.build_number }}"
 
       - name: Package .app into .ipa
         run: |
@@ -59,24 +70,19 @@ jobs:
             build/ios/iphoneos/Runner.app.dSYM.zip
           retention-days: 7
 
-      - name: Extract app version
-        id: app_version
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.app_version.outputs.tag }}"
+          TITLE="DirXplore ${{ steps.app_version.outputs.build_name }} (${{ steps.app_version.outputs.build_number }})"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists, skipping."
+            gh release upload "$TAG" build/ios/iphoneos/Runner.ipa --clobber
+            gh release edit "$TAG" --title "$TITLE" --notes "Automated release from commit ${{ github.sha }}"
           else
             gh release create "$TAG" \
               build/ios/iphoneos/Runner.ipa \
-              --title "DirXplore ${{ steps.app_version.outputs.version }}" \
+              --title "$TITLE" \
               --notes "Automated release from commit ${{ github.sha }}"
           fi
